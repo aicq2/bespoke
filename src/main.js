@@ -1,48 +1,29 @@
 // src/main.js
-import smoothScroll from './modules/core/smooth-scroll';
-import animations from './modules/core/animations';
-import menu from './modules/ui/menu';
-import buttons from './modules/ui/buttons';
-import textAnimations from './modules/ui/text-animations';
 
-// Feature modules
-import horizontalScroll from './modules/features/horizontal-scroll';
-import slider from './modules/features/slider';
-import fallingLogos from './modules/features/falling-logos';
-import projectGrid from './modules/features/project-grid';
-import formSteps from './modules/features/form-steps';
-import nextProject from './modules/features/next-project';
+// Import core modules
+import smoothScroll from './modules/core/smooth-scroll.js';
 
+// Initialize core functionality
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize core modules for all pages
+  // Initialize smooth scrolling
   smoothScroll.init();
-  animations.init();
-  menu.init();
-  buttons.init();
-  textAnimations.init();
   
-  // Feature detection & initialization based on page elements
-  if (document.querySelector('.tag-canvas')) {
-    fallingLogos.init();
+  // Log initialization for debugging
+  console.log('Main.js initialized with smooth scrolling');
+  
+  // Check for ScrollSmoother instance
+  if (smoothScroll.getSmoother()) {
+    console.log('ScrollSmoother successfully initialized');
+  } else {
+    console.log('ScrollSmoother not initialized - check page structure or screen size');
   }
   
-  if (document.querySelector('.track, .recent_slider, .horizontal-scroll')) {
-    horizontalScroll.init();
-  }
-  
-  if (document.querySelector('.swiper')) {
-    slider.init();
-  }
-  
-  if (document.querySelector('.projects_collection-list')) {
-    projectGrid.init();
-  }
-  
-  if (document.querySelector('.next-button, .prev-button')) {
-    formSteps.init();
-  }
-  
-  if (document.querySelector('.order-number')) {
-    nextProject.init();
-  }
+  // Listen for load event to refresh ScrollSmoother after all assets are loaded
+  window.addEventListener('load', () => {
+    smoothScroll.refresh();
+    console.log('ScrollSmoother refreshed after full page load');
+  });
 });
+
+// Export the smooth scroll instance for potential manual use in Webflow
+window.smoothScroll = smoothScroll;
