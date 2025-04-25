@@ -6,7 +6,7 @@ yarn-debug.log
 .pnpm-debug.log
 
 # Build output
-dist/
+
 build/
 
 # Editor files
