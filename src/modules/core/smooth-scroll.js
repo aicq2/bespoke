@@ -1,4 +1,4 @@
-import '../../../vendor/ScrollSmoother.js';
+import 'vendor/ScrollSmoother.min.js';
 
 class SmoothScroll {
   constructor() {
