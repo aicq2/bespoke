@@ -4,7 +4,6 @@ npm-debug.log
 yarn-error.log
 yarn-debug.log
 .pnpm-debug.log
-.npmrc
 
 # Build output
 dist/
