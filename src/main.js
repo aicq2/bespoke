@@ -1,5 +1,6 @@
 // src/main.js
 import smoothScroll from './modules/core/smooth-scroll.js';
+import fallingLogos from './modules/features/falling-logos.js';
 
 function initializeSiteModules() {
   if (typeof window.gsap === 'undefined') {
@@ -21,6 +22,11 @@ function initializeSiteModules() {
     smoothScroll.init();
   } catch (error) {
   }
+
+  try {
+    fallingLogos.init();
+  } catch (error) {
+  }
 }
 
 if (document.readyState === 'loading') {
@@ -31,4 +37,5 @@ if (document.readyState === 'loading') {
 
 window.siteModules = {
   smoothScroll: smoothScroll,
+  fallingLogos: fallingLogos
 };
