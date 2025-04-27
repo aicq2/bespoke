@@ -218,7 +218,7 @@ class FallingLogos {
       this.simulationActive = true;
       this.lastWidth = containerWidth;
       this.lastHeight = containerHeight;
-      console.log("Simulation started");
+     // console.log("Simulation started");
     }
   
     bindEvents() {
