@@ -8,6 +8,7 @@ import { fallingLogos } from './modules/features/falling-logos.js';
 // import { horizontalScroll } from './modules/features/horizontal-scroll.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
+import { nextProject } from './modules/features/next-project.js';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -99,6 +100,16 @@ function initializeSiteModules() {
       console.warn('Error initializing project grid:', error);
     }
   }
+  
+  if (currentPage === 'project-details') {
+    console.log('Initializing project details page modules');
+    
+    try {
+      nextProject.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing next project navigation:', error);
+    }
+  }
 
   // Refresh ScrollTrigger after everything is initialized
   setTimeout(() => {
@@ -117,7 +128,8 @@ function initializeSiteModules() {
     fallingLogos,
     // horizontalScroll, // Commented out
     formSteps,
-    projectGrid
+    projectGrid,
+    nextProject
   };
 }
 
@@ -151,6 +163,10 @@ window.addEventListener('resize', () => {
       projectGrid.refresh();
     }
     
+    if (pageDetector.isPage('project-details')) {
+      nextProject.refresh();
+    }
+    
     if (typeof ScrollTrigger !== 'undefined') {
       ScrollTrigger.refresh();
     }
@@ -167,5 +183,6 @@ window.siteModules = {
   fallingLogos,
   // horizontalScroll, // Commented out
   formSteps,
-  projectGrid
+  projectGrid,
+  nextProject
 };
