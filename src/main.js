@@ -151,7 +151,7 @@ window.addEventListener('resize', () => {
     
     // Refresh page-specific modules if needed
     if (pageDetector.isPage('home')) {
-      // horizontalScroll.init(); // Commented out
+       horizontalScroll.init(); 
     }
     
     if (pageDetector.isPage('contacts')) {
