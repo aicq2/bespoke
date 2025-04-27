@@ -5,7 +5,7 @@ import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
 import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
-// import { horizontalScroll } from './modules/features/horizontal-scroll.js';
+ import { horizontalScroll } from './modules/features/horizontal-scroll.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
@@ -72,13 +72,12 @@ function initializeSiteModules() {
       console.warn('Error initializing falling logos:', error);
     }
     
-    /* Horizontal scroll commented out
     try {
       horizontalScroll.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing horizontal scroll:', error);
     }
-    */
+    
   }
   
   if (currentPage === 'contacts') {
@@ -126,7 +125,7 @@ function initializeSiteModules() {
     buttonAnimations,
     menuAnimations,
     fallingLogos,
-    // horizontalScroll, // Commented out
+    horizontalScroll,
     formSteps,
     projectGrid,
     nextProject
@@ -181,7 +180,7 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  // horizontalScroll, // Commented out
+  horizontalScroll, 
   formSteps,
   projectGrid,
   nextProject
