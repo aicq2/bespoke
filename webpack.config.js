@@ -3,17 +3,16 @@ const path = require('path');
 const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-  mode: 'production', // Set mode explicitly to production for minification
+  mode: 'development', // Use development mode for better debugging
   entry: './src/main.js',
   output: {
-    filename: "main.min.js", // Fixed filename instead of [name].min.js for simplicity
+    filename: "main.min.js",
     path: path.resolve(__dirname, 'dist'),
     publicPath: '/',
   },
   resolve: {
-    extensions: ['.js'], // Add file extensions to resolve
+    extensions: ['.js'],
     alias: {
-      // Fix the vendor alias path - it should point to vendor directory at the root
       '@': path.resolve(__dirname, 'src/'),
       'vendor': path.resolve(__dirname, 'vendor/')
     }
@@ -36,17 +35,19 @@ module.exports = {
     maxEntrypointSize: 512000,
     maxAssetSize: 512000
   },
+  // Use source maps for better debugging
+  devtool: 'source-map',
   optimization: {
-    minimize: true,
+    minimize: false, // Disable minification for debugging
     minimizer: [
       new TerserPlugin({
-        extractComments: false, // Don't extract comments to separate file
+        extractComments: false,
         terserOptions: {
           format: {
-            comments: false, // Remove comments
+            comments: false,
           },
           compress: {
-            drop_console: false, // Keep console.logs for debugging
+            drop_console: false,
           }
         }
       })
