@@ -1,57 +1,39 @@
 // src/main.js
+console.log('Main script loaded and executed!');
 
-// Import core modules
-import smoothScroll from './modules/core/smooth-scroll.js';
+// Create a global variable to verify script is executing
+window.scriptLoaded = true;
 
-console.log('Main.js loaded, about to initialize components');
-
-// Initialize core functionality
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded, checking if GSAP is available');
+  console.log('DOM content loaded event fired');
   
-  // Verify GSAP is available
+  // Create a visible element to verify script execution
+  const testElement = document.createElement('div');
+  testElement.style.position = 'fixed';
+  testElement.style.top = '0';
+  testElement.style.left = '0';
+  testElement.style.padding = '10px';
+  testElement.style.background = 'red';
+  testElement.style.color = 'white';
+  testElement.style.zIndex = '9999';
+  testElement.textContent = 'Script executed successfully';
+  
+  document.body.appendChild(testElement);
+  
+  // Check if GSAP and ScrollSmoother are available
   if (typeof gsap === 'undefined') {
-    console.error('GSAP not found. Make sure you have included the GSAP script in your Webflow page.');
-    return;
-  }
-
-  // Verify ScrollTrigger is available (needed by ScrollSmoother)
-  if (typeof ScrollTrigger === 'undefined') {
-    console.error('ScrollTrigger not found. Make sure you have included the ScrollTrigger script in your Webflow page.');
-    return;
-  }
-  
-  // Verify ScrollSmoother is available
-  if (typeof ScrollSmoother === 'undefined') {
-    console.error('ScrollSmoother not found. Make sure you have included the ScrollSmoother script in your Webflow page.');
-    return;
-  }
-  
-  try {
-    console.log('Initializing smooth scrolling...');
-    // Initialize smooth scrolling
-    smoothScroll.init();
+    console.error('GSAP is not available');
+    testElement.textContent += ' - GSAP missing';
+  } else {
+    console.log('GSAP is available');
+    testElement.textContent += ' - GSAP OK';
     
-    // Check for ScrollSmoother instance
-    if (smoothScroll.getSmoother()) {
-      console.log('ScrollSmoother instance available');
+    if (typeof ScrollSmoother === 'undefined') {
+      console.error('ScrollSmoother is not available');
+      testElement.textContent += ' - ScrollSmoother missing';
     } else {
-      console.log('ScrollSmoother not initialized - check page structure or screen size');
+      console.log('ScrollSmoother is available');
+      testElement.textContent += ' - ScrollSmoother OK';
     }
-  } catch (error) {
-    console.error('Error during initialization:', error);
   }
-  
-  // Listen for load event to refresh ScrollSmoother after all assets are loaded
-  window.addEventListener('load', () => {
-    try {
-      smoothScroll.refresh();
-      console.log('ScrollSmoother refreshed after full page load');
-    } catch (error) {
-      console.error('Error refreshing ScrollSmoother:', error);
-    }
-  });
 });
-
-// Export the smooth scroll instance for potential manual use in Webflow
-window.smoothScroll = smoothScroll;
