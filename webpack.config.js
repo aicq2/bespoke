@@ -1,9 +1,8 @@
 // webpack.config.js
 const path = require('path');
-const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-  mode: 'development', // Use development mode for better debugging
+  mode: 'development',
   entry: './src/main.js',
   output: {
     filename: "main.min.js",
@@ -12,10 +11,6 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js'],
-    alias: {
-      '@': path.resolve(__dirname, 'src/'),
-      'vendor': path.resolve(__dirname, 'vendor/')
-    }
   },
   module: {
     rules: [
@@ -31,26 +26,8 @@ module.exports = {
       }
     ]
   },
-  performance: {
-    maxEntrypointSize: 512000,
-    maxAssetSize: 512000
-  },
-  // Use source maps for better debugging
   devtool: 'source-map',
   optimization: {
-    minimize: false, // Disable minification for debugging
-    minimizer: [
-      new TerserPlugin({
-        extractComments: false,
-        terserOptions: {
-          format: {
-            comments: false,
-          },
-          compress: {
-            drop_console: false,
-          }
-        }
-      })
-    ]
+    minimize: false
   }
 };

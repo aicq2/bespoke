@@ -3,12 +3,11 @@
 // Import core modules
 import smoothScroll from './modules/core/smooth-scroll.js';
 
-// Log successful import
-console.log('Main.js loaded, imported modules successfully');
+console.log('Main.js loaded, about to initialize components');
 
 // Initialize core functionality
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded, initializing modules');
+  console.log('DOM loaded, checking if GSAP is available');
   
   // Verify GSAP is available
   if (typeof gsap === 'undefined') {
@@ -22,12 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
   
+  // Verify ScrollSmoother is available
+  if (typeof ScrollSmoother === 'undefined') {
+    console.error('ScrollSmoother not found. Make sure you have included the ScrollSmoother script in your Webflow page.');
+    return;
+  }
+  
   try {
+    console.log('Initializing smooth scrolling...');
     // Initialize smooth scrolling
     smoothScroll.init();
-    
-    // Log initialization for debugging
-    console.log('Main.js initialized with smooth scrolling');
     
     // Check for ScrollSmoother instance
     if (smoothScroll.getSmoother()) {
