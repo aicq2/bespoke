@@ -7,6 +7,7 @@ import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
 //import { horizontalScroll } from './modules/features/horizontal-scroll.js';
 import { formSteps } from './modules/features/form-steps.js';
+import { projectGrid } from './modules/features/project-grid.js';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -85,6 +86,16 @@ function initializeSiteModules() {
       console.warn('Error initializing form steps:', error);
     }
   }
+  
+  if (pageDetector.isPage('projects')) {
+    console.log('Initializing projects page modules');
+    
+    try {
+      projectGrid.init();
+    } catch (error) {
+      console.warn('Error initializing project grid:', error);
+    }
+  }
 
   // Refresh ScrollTrigger after everything is initialized
   setTimeout(() => {
@@ -120,6 +131,10 @@ window.addEventListener('resize', () => {
       formSteps.refresh();
     }
     
+    if (pageDetector.isPage('projects')) {
+      projectGrid.refresh();
+    }
+    
     if (typeof ScrollTrigger !== 'undefined') {
       ScrollTrigger.refresh();
     }
@@ -134,6 +149,7 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  //horizontalScroll,
-  formSteps
+  horizontalScroll,
+  formSteps,
+  projectGrid
 };
