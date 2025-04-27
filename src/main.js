@@ -1,12 +1,12 @@
 // src/main.js
-import smoothScroll from './modules/core/smooth-scroll.js';
-import pageDetector from './modules/core/page-detector.js';
-import animations from './modules/core/animations.js';
-import buttonAnimations from './modules/ui/buttons.js';
-import menuAnimations from './modules/ui/menu.js';
-import fallingLogos from './modules/features/falling-logos.js';
-import horizontalScroll from './modules/features/horizontal-scroll.js';
-import formSteps from './modules/features/form-steps.js';
+import { smoothScroll } from './modules/core/smooth-scroll.js';
+import { pageDetector } from './modules/core/page-detector.js';
+import { animations } from './modules/ui/text-animations.js';
+import { buttonAnimations } from './modules/ui/buttons.js';
+import { menuAnimations } from './modules/ui/menu.js';
+import { fallingLogos } from './modules/features/falling-logos.js';
+//import { horizontalScroll } from './modules/features/horizontal-scroll.js';
+import { formSteps } from './modules/features/form-steps.js';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -134,6 +134,6 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  horizontalScroll,
+  //horizontalScroll,
   formSteps
 };
