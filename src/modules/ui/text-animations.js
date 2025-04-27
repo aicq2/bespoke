@@ -89,4 +89,4 @@ class Animations {
   }
   
   const animations = new Animations();
-  export default animations;
+  export { animations as default };
