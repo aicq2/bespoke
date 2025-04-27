@@ -1,11 +1,12 @@
 // src/main.js
 import smoothScroll from './modules/core/smooth-scroll.js';
 import pageDetector from './modules/core/page-detector.js';
-import animations from './modules/ui/text-animations.js';
+import animations from './modules/core/animations.js';
 import buttonAnimations from './modules/ui/buttons.js';
 import menuAnimations from './modules/ui/menu.js';
 import fallingLogos from './modules/features/falling-logos.js';
 import horizontalScroll from './modules/features/horizontal-scroll.js';
+import formSteps from './modules/features/form-steps.js';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -25,7 +26,7 @@ function initializeSiteModules() {
     console.warn('Error registering GSAP plugins:', error);
   }
 
-  // Initialize shared modules for all pages
+  // Initialize page detector first
   try {
     pageDetector.init();
     console.log('Current page:', pageDetector.currentPage);
@@ -33,6 +34,7 @@ function initializeSiteModules() {
     console.warn('Error initializing page detector:', error);
   }
   
+  // Initialize shared modules for all pages
   try {
     smoothScroll.init();
   } catch (error) {
@@ -73,6 +75,16 @@ function initializeSiteModules() {
       console.warn('Error initializing horizontal scroll:', error);
     }
   }
+  
+  if (pageDetector.isPage('contacts')) {
+    console.log('Initializing contacts page modules');
+    
+    try {
+      formSteps.init();
+    } catch (error) {
+      console.warn('Error initializing form steps:', error);
+    }
+  }
 
   // Refresh ScrollTrigger after everything is initialized
   setTimeout(() => {
@@ -104,6 +116,10 @@ window.addEventListener('resize', () => {
       horizontalScroll.init(); // Reinitialize on resize
     }
     
+    if (pageDetector.isPage('contacts')) {
+      formSteps.refresh();
+    }
+    
     if (typeof ScrollTrigger !== 'undefined') {
       ScrollTrigger.refresh();
     }
@@ -118,5 +134,6 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  horizontalScroll
+  horizontalScroll,
+  formSteps
 };
