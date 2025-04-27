@@ -32,7 +32,7 @@ function initializeSiteModules() {
   let currentPage = 'unknown';
   try {
     currentPage = pageDetector.init();
-    console.log('Current page:', currentPage);
+   // console.log('Current page:', currentPage);
   } catch (error) {
     console.warn('Error initializing page detector:', error);
   }
@@ -64,7 +64,7 @@ function initializeSiteModules() {
 
   // Initialize page-specific modules
   if (currentPage === 'home') {
-    console.log('Initializing home page modules');
+   // console.log('Initializing home page modules');
     
     try {
       fallingLogos.init({ currentPage });
@@ -80,7 +80,7 @@ function initializeSiteModules() {
   }
   
   if (currentPage === 'contacts') {
-    console.log('Initializing contacts page modules');
+   // console.log('Initializing contacts page modules');
     
     try {
       formSteps.init({ currentPage });
@@ -90,7 +90,7 @@ function initializeSiteModules() {
   }
   
   if (currentPage === 'projects') {
-    console.log('Initializing projects page modules');
+   // console.log('Initializing projects page modules');
     
     try {
       projectGrid.init({ currentPage });
@@ -100,7 +100,7 @@ function initializeSiteModules() {
   }
   
   if (currentPage === 'project-details') {
-    console.log('Initializing project details page modules');
+   // console.log('Initializing project details page modules');
     
     try {
       nextProject.init({ currentPage });

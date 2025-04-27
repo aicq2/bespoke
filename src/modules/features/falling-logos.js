@@ -24,7 +24,7 @@ class FallingLogos {
         const observer = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
-              console.log("Container intersected, starting simulation");
+              //console.log("Container intersected, starting simulation");
               this.initSimulation(true); // Force initial start
               observer.disconnect();
             }
@@ -64,9 +64,9 @@ class FallingLogos {
       const containerHeight = containerElement.clientHeight + 2;
   
       // Log when this runs
-      console.log(
+     /* console.log(
         `initSimulation called - Active: ${this.simulationActive}, Force: ${forceRestart}, Size: ${containerWidth}x${containerHeight}`
-      );
+      );*/
   
       // Only restart if forced or size changed significantly
       if (
@@ -238,7 +238,7 @@ class FallingLogos {
     }
   
     handleResize() {
-      console.log("Resize event triggered");
+      //console.log("Resize event triggered");
       clearTimeout(this.resizeTimeout);
       this.resizeTimeout = setTimeout(() => {
         if (document.querySelector(".tag-canvas")) {
