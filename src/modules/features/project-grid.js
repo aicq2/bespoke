@@ -29,9 +29,11 @@ class ProjectGrid {
       this.scrollTriggerInstance = null;
     }
   
-    init() {
+    init(params = {}) {
+      const { currentPage } = params;
+      
       // Only initialize on projects page
-      if (!window.siteModules.pageDetector.isPage('projects')) {
+      if (currentPage !== 'projects') {
         return;
       }
   

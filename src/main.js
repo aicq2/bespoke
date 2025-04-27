@@ -1,11 +1,11 @@
 // src/main.js
 import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
-import { animations } from './modules/ui/text-animations.js';
+import { animations } from './modules/core/animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
 import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
-//import { horizontalScroll } from './modules/features/horizontal-scroll.js';
+// import { horizontalScroll } from './modules/features/horizontal-scroll.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 
@@ -28,9 +28,10 @@ function initializeSiteModules() {
   }
 
   // Initialize page detector first
+  let currentPage = 'unknown';
   try {
-    pageDetector.init();
-    console.log('Current page:', pageDetector.currentPage);
+    currentPage = pageDetector.init();
+    console.log('Current page:', currentPage);
   } catch (error) {
     console.warn('Error initializing page detector:', error);
   }
@@ -61,37 +62,39 @@ function initializeSiteModules() {
   }
 
   // Initialize page-specific modules
-  if (pageDetector.isPage('home')) {
+  if (currentPage === 'home') {
     console.log('Initializing home page modules');
     
     try {
-      fallingLogos.init();
+      fallingLogos.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing falling logos:', error);
     }
     
+    /* Horizontal scroll commented out
     try {
-      horizontalScroll.init();
+      horizontalScroll.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing horizontal scroll:', error);
     }
+    */
   }
   
-  if (pageDetector.isPage('contacts')) {
+  if (currentPage === 'contacts') {
     console.log('Initializing contacts page modules');
     
     try {
-      formSteps.init();
+      formSteps.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing form steps:', error);
     }
   }
   
-  if (pageDetector.isPage('projects')) {
+  if (currentPage === 'projects') {
     console.log('Initializing projects page modules');
     
     try {
-      projectGrid.init();
+      projectGrid.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing project grid:', error);
     }
@@ -103,6 +106,19 @@ function initializeSiteModules() {
       ScrollTrigger.refresh();
     }
   }, 300);
+
+  // Expose modules globally only after initialization
+  window.siteModules = {
+    smoothScroll,
+    pageDetector,
+    animations,
+    buttonAnimations,
+    menuAnimations,
+    fallingLogos,
+    // horizontalScroll, // Commented out
+    formSteps,
+    projectGrid
+  };
 }
 
 // Initialize when DOM is ready
@@ -124,7 +140,7 @@ window.addEventListener('resize', () => {
     
     // Refresh page-specific modules if needed
     if (pageDetector.isPage('home')) {
-      horizontalScroll.init(); // Reinitialize on resize
+      // horizontalScroll.init(); // Commented out
     }
     
     if (pageDetector.isPage('contacts')) {
@@ -149,7 +165,7 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  horizontalScroll,
+  // horizontalScroll, // Commented out
   formSteps,
   projectGrid
 };
