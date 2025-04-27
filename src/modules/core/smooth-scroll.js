@@ -3,11 +3,14 @@ import 'vendor/ScrollSmoother.min.js';
 class SmoothScroll {
   constructor() {
     this.smoother = null;
-    this.breakpoint = 768; // Mobile breakpoint
+    this.breakpoint = 768;
   }
 
   init() {
+    console.log('SmoothScroll init called');
+    
     if (window.innerWidth < this.breakpoint) {
+      console.log('SmoothScroll: Mobile detected, not initializing');
       return;
     }
 
@@ -16,16 +19,19 @@ class SmoothScroll {
       return;
     }
 
-    // Initialize ScrollSmoother
+    console.log('SmoothScroll: Initializing ScrollSmoother');
+    
     this.smoother = ScrollSmoother.create({
       wrapper: '#smooth-wrapper',
       content: '#smooth-content',
-      smooth: 2, 
-      effects: true, 
-      smoothTouch: false, 
-      normalizeScroll: true, 
-      ignoreMobileResize: true, 
+      smooth: 1,
+      effects: true,
+      smoothTouch: false,
+      normalizeScroll: true,
+      ignoreMobileResize: true,
     });
+    
+    console.log('SmoothScroll: Successfully initialized');
 
     this.handleResize();
   }
@@ -34,10 +40,12 @@ class SmoothScroll {
     window.addEventListener('resize', () => {
       if (window.innerWidth < this.breakpoint) {
         if (this.smoother) {
+          console.log('SmoothScroll: Killing smoother on mobile');
           this.smoother.kill();
           this.smoother = null;
         }
       } else if (!this.smoother) {
+        console.log('SmoothScroll: Reinitializing on desktop');
         this.init();
       }
     });
@@ -45,6 +53,7 @@ class SmoothScroll {
 
   refresh() {
     if (this.smoother) {
+      console.log('SmoothScroll: Refreshing');
       this.smoother.refresh();
     }
   }
