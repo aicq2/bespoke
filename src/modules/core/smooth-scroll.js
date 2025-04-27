@@ -1,5 +1,8 @@
 // src/modules/core/smooth-scroll.js
 
+// Import ScrollSmoother from vendor folder
+import '../../../vendor/ScrollSmoother.min.js';
+
 class SmoothScroll {
   constructor() {
     this.smoother = null;
@@ -18,12 +21,6 @@ class SmoothScroll {
 
       if (!document.getElementById('smooth-wrapper') || !document.getElementById('smooth-content')) {
         console.warn('Smooth scroll wrapper or content elements not found.');
-        return;
-      }
-
-      // Check if ScrollSmoother is available (should be loaded via CDN)
-      if (typeof ScrollSmoother === 'undefined') {
-        console.error('ScrollSmoother is not defined. Check if the script is loaded correctly via CDN.');
         return;
       }
 
