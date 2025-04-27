@@ -1,8 +1,9 @@
 // webpack.config.js
 const path = require('path');
+const TerserPlugin = require('terser-webpack-plugin');
 
 module.exports = {
-  mode: 'development',
+  mode: 'production',
   entry: './src/main.js',
   output: {
     filename: "main.min.js",
@@ -11,15 +12,14 @@ module.exports = {
   resolve: {
     extensions: ['.js'],
     alias: {
-      // This makes the imports work correctly
-      vendor: path.resolve(__dirname, 'vendor/')
+      vendor: path.resolve(__dirname, 'vendor')
     }
   },
   module: {
     rules: [
       {
         test: /\.js$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /vendor/], // Exclude vendor files from being processed by babel
         use: {
           loader: 'babel-loader',
           options: {
@@ -29,8 +29,15 @@ module.exports = {
       }
     ]
   },
-  devtool: 'source-map',
   optimization: {
-    minimize: false
+    minimize: true,
+    minimizer: [new TerserPlugin({
+      extractComments: false,
+      terserOptions: {
+        format: {
+          comments: false,
+        },
+      },
+    })],
   }
 };

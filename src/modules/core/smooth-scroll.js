@@ -1,6 +1,5 @@
 // src/modules/core/smooth-scroll.js
-
-// Import ScrollSmoother from vendor folder
+// Import ScrollSmoother directly
 import '../../../vendor/ScrollSmoother.min.js';
 
 class SmoothScroll {
@@ -12,20 +11,24 @@ class SmoothScroll {
 
   init() {
     console.log('SmoothScroll init called');
-    
     try {
+      // Check if ScrollSmoother is available after import
+      if (typeof ScrollSmoother === 'undefined') {
+        console.error('ScrollSmoother not available after import');
+        return;
+      }
+
       if (window.innerWidth < this.breakpoint) {
         console.log('SmoothScroll: Mobile detected, not initializing');
         return;
       }
-
+      
       if (!document.getElementById('smooth-wrapper') || !document.getElementById('smooth-content')) {
         console.warn('Smooth scroll wrapper or content elements not found.');
         return;
       }
-
-      console.log('SmoothScroll: Initializing ScrollSmoother');
       
+      console.log('SmoothScroll: Initializing ScrollSmoother');
       this.smoother = ScrollSmoother.create({
         wrapper: '#smooth-wrapper',
         content: '#smooth-content',
@@ -37,13 +40,13 @@ class SmoothScroll {
       });
       
       console.log('SmoothScroll: Successfully initialized');
-
       this.handleResize();
     } catch (error) {
       console.error('Error initializing SmoothScroll:', error);
     }
   }
 
+  // Rest of methods remain the same
   handleResize() {
     window.addEventListener('resize', () => {
       if (window.innerWidth < this.breakpoint) {
