@@ -5,10 +5,10 @@ import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
 import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
- import { horizontalScroll } from './modules/features/horizontal-scroll.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
+import { homeScroll } from './modules/features/scroll/home-scroll.js';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -73,11 +73,10 @@ function initializeSiteModules() {
     }
     
     try {
-      horizontalScroll.init({ currentPage });
+      homeScroll.init({ currentPage });
     } catch (error) {
-      console.warn('Error initializing horizontal scroll:', error);
+      console.warn('Error initializing home scroll:', error);
     }
-    
   }
   
   if (currentPage === 'contacts') {
@@ -125,10 +124,10 @@ function initializeSiteModules() {
     buttonAnimations,
     menuAnimations,
     fallingLogos,
-    horizontalScroll,
     formSteps,
     projectGrid,
-    nextProject
+    nextProject,
+    homeScroll
   };
 }
 
@@ -151,7 +150,7 @@ window.addEventListener('resize', () => {
     
     // Refresh page-specific modules if needed
     if (pageDetector.isPage('home')) {
-       horizontalScroll.init(); 
+      homeScroll.refresh();
     }
     
     if (pageDetector.isPage('contacts')) {
@@ -180,8 +179,8 @@ window.siteModules = {
   buttonAnimations,
   menuAnimations,
   fallingLogos,
-  horizontalScroll, 
   formSteps,
   projectGrid,
-  nextProject
+  nextProject,
+  homeScroll
 };
