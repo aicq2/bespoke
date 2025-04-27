@@ -249,4 +249,4 @@ class FallingLogos {
   }
   
   const fallingLogos = new FallingLogos();
-  export default fallingLogos;
+  export { fallingLogos };

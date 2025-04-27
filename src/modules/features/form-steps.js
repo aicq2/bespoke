@@ -245,4 +245,4 @@ class FormSteps {
   }
   
   const formSteps = new FormSteps();
-  export default formSteps;
+  export { formSteps };

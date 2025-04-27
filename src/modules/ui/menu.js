@@ -141,4 +141,4 @@ class MenuAnimations {
   }
   
   const menuAnimations = new MenuAnimations();
-  export default menuAnimations;
+  export { menuAnimations };

@@ -40,4 +40,4 @@ class PageDetector {
   }
   
   const pageDetector = new PageDetector();
-  export default pageDetector;
+  export { pageDetector };

@@ -87,4 +87,4 @@ class SmoothScroll {
 }
 
 const smoothScroll = new SmoothScroll();
-export default smoothScroll;
+export { smoothScroll };

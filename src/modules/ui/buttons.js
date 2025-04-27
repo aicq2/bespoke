@@ -73,4 +73,4 @@ class ButtonAnimations {
   }
   
   const buttonAnimations = new ButtonAnimations();
-  export default buttonAnimations;
+  export { buttonAnimations };
