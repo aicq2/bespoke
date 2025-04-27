@@ -4,8 +4,8 @@
   "description": "External scripts for Webflow site",
   "main": "src/main.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "watch": "webpack --watch --config webpack.config.js",
+    "build": "webpack --mode production",
+    "watch": "webpack --watch --mode development",
     "dev": "webpack --mode development --config webpack.config.js"
   },
   "dependencies": {},
