@@ -53,11 +53,33 @@ class HomeScroll {
         return;
       }
   
-      // Calculate the track width and scroll distance
+      const container = document.querySelector(".container-large");
+      if (!container) {
+        console.warn('Home horizontal scroll: container-large not found');
+        return;
+      }
+  
+      // Calculate the track width and scroll distance with a buffer
       const getScrollDistance = () => {
-        const trackWidth = track.scrollWidth;
-        const windowWidth = window.innerWidth;
-        return trackWidth - windowWidth;
+        // Get the actual width of the track (all items combined)
+        let trackWidth = 0;
+        const items = track.children;
+        for (let i = 0; i < items.length; i++) {
+          trackWidth += items[i].offsetWidth;
+        }
+        
+        // Add spacing between items if they have margins
+        const computedStyle = window.getComputedStyle(items[0]);
+        const marginRight = parseInt(computedStyle.marginRight, 10) || 0;
+        trackWidth += marginRight * (items.length - 1);
+        
+        // Get the container width (visible area)
+        const containerWidth = container.offsetWidth;
+        
+        // Add a small buffer (1.5%) to ensure complete scrolling
+        const buffer = trackWidth * 0.015;
+        
+        return trackWidth - containerWidth + buffer;
       };
   
       // Create the horizontal scroll animation
@@ -65,15 +87,19 @@ class HomeScroll {
         scrollTrigger: {
           trigger: section,
           start: "top top",
-          end: () => `+=${getScrollDistance()}`,
+          end: () => `+=${getScrollDistance() + 50}`, // Add 50px extra for safety
           pin: sticky,
           anticipatePin: 1,
           scrub: 1,
           invalidateOnRefresh: true,
+          onUpdate: (self) => {
+            // Log progress for debugging
+             console.log(`Progress: ${self.progress.toFixed(3)}, Position: ${-getScrollDistance() * self.progress}`);
+          }
         }
       });
   
-      // Animate the track from left to right (positive values move left)
+      // Animate the track with a slightly larger scroll distance
       tl.to(track, {
         x: () => -getScrollDistance(),
         ease: "none"
@@ -81,6 +107,9 @@ class HomeScroll {
   
       // Store the ScrollTrigger for cleanup
       this.scrollTrigger = tl.scrollTrigger;
+      
+      // Log initial calculations
+      console.log(`Track scroll distance: ${getScrollDistance()}px`);
     }
   
     refresh() {
