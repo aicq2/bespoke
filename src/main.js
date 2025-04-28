@@ -9,7 +9,7 @@ import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
 import { homeScroll } from './modules/features/scroll/home-scroll.js';
-import { aboutServicesScroll } from './modules/features/scroll/about-services-scroll';
+import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
 
 function initializeSiteModules() {
   // Check for required global dependencies
