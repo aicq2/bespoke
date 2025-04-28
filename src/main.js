@@ -1,7 +1,7 @@
 // src/main.js
 import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
-//import { animations } from './modules/ui/text-animations.js';
+import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
 import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
@@ -56,11 +56,11 @@ try {
     }
   }
   
-  /*try {
+  try {
     animations.init();
   } catch (error) {
     console.warn('Error initializing animations:', error);
-  }*/
+  }
   
   try {
     menuAnimations.init();
@@ -132,14 +132,14 @@ try {
   window.siteModules = {
     smoothScroll,
     pageDetector,
-    //animations,
+    animations,
     buttonAnimations,
     menuAnimations,
     fallingLogos,
     formSteps,
     projectGrid,
     nextProject,
-   // homeScroll
+    homeScroll
   };
 }
 
@@ -156,14 +156,14 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     // Refresh modules on resize
-    //animations.refresh();
+    animations.refresh();
     buttonAnimations.refresh();
     menuAnimations.refresh();
     
     // Refresh page-specific modules if needed
-   /* if (pageDetector.isPage('home')) {
+    if (pageDetector.isPage('home')) {
       homeScroll.refresh();
-    }*/
+    }
     
     if (pageDetector.isPage('contacts')) {
       formSteps.refresh();
@@ -192,7 +192,7 @@ window.addEventListener('resize', () => {
 window.siteModules = {
   smoothScroll,
   pageDetector,
-  //animations,
+  animations,
   buttonAnimations,
   menuAnimations,
   fallingLogos,
