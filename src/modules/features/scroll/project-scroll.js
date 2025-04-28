@@ -101,26 +101,50 @@ class ProjectScroll {
         container.style.height = `${containerHeight}px`;
         container.style.minHeight = `${containerHeight}px`;
 
-        // Create a marker after the horizontal scroll to ensure proper spacing
-        this.createSpacerAfterHorizontalScroll(container, containerHeight);
-
-        // Convert rem to pixels for pinSpacing calculation
+        // Convert rem to pixels for offset calculation
         const remValue = parseFloat(this.topOffset);
         const remInPixels = remValue * parseFloat(getComputedStyle(document.documentElement).fontSize);
 
-        // Create timeline
+        // Create a pin spacer with the correct top offset
+        // First, set up the container to be positioned properly when pinned
+        gsap.set(container, {
+            position: 'relative',
+            top: 0,
+            left: 0,
+            width: '100%'
+        });
+
+        // Create timeline with specific pin settings
         let tl = gsap.timeline({
             scrollTrigger: {
                 trigger: container,
-                start: `top+=${remInPixels} top+=${remInPixels}`, // Pin at top 4rem
+                start: "top top+=64", // 4rem = 64px typically
                 end: () => `+=${getScrollAmount()}`,
                 pin: true,
                 anticipatePin: 1,
                 scrub: 1,
                 invalidateOnRefresh: true,
-                pinSpacing: true, // Important to prevent content overlap
-                onUpdate: (self) => {
-                    // Optional: add progress indicator or other effects
+                pinSpacing: true,
+                pinReparent: false, // Important for maintaining position
+                onEnter: () => {
+                    // When pinning starts, adjust the position to be 4rem from top
+                    gsap.set(".pin-spacer", { 
+                        position: "fixed",
+                        top: `${this.topOffset}`,
+                        width: "100%",
+                        zIndex: 10
+                    });
+                },
+                onRefresh: (self) => {
+                    // Ensure the pin-spacer stays at the correct position
+                    if (self.isActive) {
+                        gsap.set(".pin-spacer", { 
+                            position: "fixed",
+                            top: `${this.topOffset}`,
+                            width: "100%",
+                            zIndex: 10
+                        });
+                    }
                 }
             }
         });
@@ -132,6 +156,9 @@ class ProjectScroll {
         });
 
         this.scrollTrigger = tl.scrollTrigger;
+
+        // Create a spacer to prevent content overlap
+        this.createSpacerAfterHorizontalScroll(container, containerHeight);
     }
 
     // Create a spacer element after the horizontal scroll to prevent content overlap
@@ -145,7 +172,7 @@ class ProjectScroll {
         // Create a new spacer
         const spacer = document.createElement('div');
         spacer.className = 'horizontal-scroll-spacer';
-        spacer.style.height = '0px'; // Start with zero height
+        spacer.style.height = `${containerHeight + 64}px`; // Add the 4rem offset
         spacer.style.width = '100%';
         spacer.style.display = 'block';
         spacer.style.position = 'relative';
@@ -227,11 +254,13 @@ class ProjectScroll {
             gsap.set(swiperWrapper, { clearProps: "all" });
         }
         
-        // Reset container height
+        // Reset container height and position
         const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
         if (horizontalScrollContainer) {
             horizontalScrollContainer.style.height = '';
             horizontalScrollContainer.style.minHeight = '';
+            horizontalScrollContainer.style.position = '';
+            horizontalScrollContainer.style.top = '';
         }
     }
 }
