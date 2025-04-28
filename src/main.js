@@ -10,6 +10,7 @@ import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
 import { homeScroll } from './modules/features/scroll/home-scroll.js';
 import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
+import { projectScroll } from './modules/features/scroll/project-scroll.js';
 
 // Prevent ScrollTrigger from forcing scroll position on refresh
 function preventScrollPositionReset() {
@@ -135,6 +136,13 @@ function initializeSiteModules() {
     } catch (error) {
       console.warn('Error initializing next project navigation:', error);
     }
+    
+    // Initialize project scroll for horizontal scrolling on project detail pages
+    try {
+      projectScroll.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing project scroll:', error);
+    }
   }
 
   // Refresh ScrollTrigger after everything is initialized
@@ -156,7 +164,8 @@ function initializeSiteModules() {
     projectGrid,
     nextProject,
     homeScroll,
-    horizontalScroll
+    horizontalScroll,
+    projectScroll  // Add projectScroll to the exposed modules
   };
 }
 
@@ -218,8 +227,9 @@ window.addEventListener('resize', () => {
         projectGrid.refresh();
       }
       
-      if (pageDetector.isPage('project-details') && nextProject) {
-        nextProject.refresh();
+      if (pageDetector.isPage('project-details')) {
+        if (nextProject) nextProject.refresh();
+        if (projectScroll) projectScroll.refresh(); // Add projectScroll refresh
       }
       
       // Only refresh ScrollTrigger if we're not on mobile OR if width changed significantly
@@ -247,5 +257,6 @@ window.siteModules = {
   projectGrid,
   nextProject,
   homeScroll,
-  horizontalScroll
+  horizontalScroll,
+  projectScroll  // Add projectScroll to the exposed modules
 };
