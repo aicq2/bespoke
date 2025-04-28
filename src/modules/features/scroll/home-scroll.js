@@ -2,6 +2,7 @@ class HomeScroll {
     constructor() {
         this.scrollTrigger = null;
         this.initialized = false;
+        this.breakpoint = 768; // Mobile breakpoint
     }
 
     init(params = {}) {
@@ -21,7 +22,11 @@ class HomeScroll {
             
             // Wait for DOM and images to be fully loaded
             window.addEventListener('load', () => {
-                this.initHomeHorizontalScroll();
+                // Only initialize if we're on desktop
+                if (window.innerWidth >= this.breakpoint) {
+                    this.initHomeHorizontalScroll();
+                }
+                
                 this.initialized = true;
                 
                 // Add resize handler
@@ -34,9 +39,12 @@ class HomeScroll {
     }
 
     initHomeHorizontalScroll() {
-        if (this.scrollTrigger) {
-            this.scrollTrigger.kill();
-            this.scrollTrigger = null;
+        // Clean up any existing ScrollTrigger
+        this.cleanup();
+
+        // Don't initialize on mobile
+        if (window.innerWidth < this.breakpoint) {
+            return;
         }
 
         const track = document.querySelector(".track");
@@ -83,15 +91,32 @@ class HomeScroll {
         
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
-            this.refresh();
+            const isDesktop = window.innerWidth >= this.breakpoint;
+            
+            // If we're on desktop and don't have a ScrollTrigger, initialize it
+            if (isDesktop && !this.scrollTrigger) {
+                this.initHomeHorizontalScroll();
+            } 
+            // If we're on mobile and have a ScrollTrigger, clean it up
+            else if (!isDesktop && this.scrollTrigger) {
+                this.cleanup();
+            }
+            // If we're on desktop and already have a ScrollTrigger, just refresh it
+            else if (isDesktop && this.scrollTrigger) {
+                this.scrollTrigger.refresh();
+            }
         }, 250);
     }
 
     refresh() {
         if (!this.initialized) return;
         
-        if (this.scrollTrigger) {
+        // Only refresh if we're on desktop
+        if (window.innerWidth >= this.breakpoint && this.scrollTrigger) {
             this.scrollTrigger.refresh();
+        } else if (window.innerWidth < this.breakpoint && this.scrollTrigger) {
+            // Clean up if we're on mobile but still have a ScrollTrigger
+            this.cleanup();
         }
     }
 
@@ -101,13 +126,21 @@ class HomeScroll {
             this.scrollTrigger = null;
         }
         
+        // Clean up any pin-spacers that might be left behind
+        document.querySelectorAll('.pin-spacer').forEach(spacer => {
+            const content = spacer.querySelector(':scope > *:not(.pin-spacer)');
+            if (content) {
+                // Move the content outside the spacer
+                spacer.parentNode.insertBefore(content, spacer);
+            }
+            // Remove the spacer
+            spacer.parentNode.removeChild(spacer);
+        });
+        
         const track = document.querySelector(".track");
         if (track) {
             gsap.set(track, { clearProps: "all" });
         }
-        
-        window.removeEventListener('resize', this.handleResize.bind(this));
-        this.initialized = false;
     }
 }
 
