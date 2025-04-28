@@ -17,7 +17,6 @@ class Animations {
       return;
     }
 
-    // Give the DOM a moment to fully render before applying animations
     gsap.delayedCall(0.5, () => {
       this.initGlobalAnimations();
       this.initialized = true;
