@@ -9,6 +9,7 @@ import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
 import { homeScroll } from './modules/features/scroll/home-scroll.js';
+import { aboutServicesScroll } from './modules/features/scroll/about-services-scroll';
 
 function initializeSiteModules() {
   // Check for required global dependencies
@@ -42,6 +43,14 @@ function initializeSiteModules() {
     smoothScroll.init();
   } catch (error) {
     console.warn('Error initializing smooth scroll:', error);
+  }
+
+  if (pageDetector.isOneOfPages(['about', 'services'])) {
+    try {
+      horizontalScroll.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing horizontal scroll:', error);
+    }
   }
   
   try {
@@ -156,7 +165,12 @@ window.addEventListener('resize', () => {
     if (pageDetector.isPage('contacts')) {
       formSteps.refresh();
     }
+
+    if (pageDetector.isOneOfPages(['about', 'services'])) {
+      horizontalScroll.refresh();
+    }
     
+  
     if (pageDetector.isPage('projects')) {
       projectGrid.refresh();
     }
@@ -182,5 +196,6 @@ window.siteModules = {
   formSteps,
   projectGrid,
   nextProject,
-  homeScroll
+  homeScroll,
+  horizontalScroll
 };
