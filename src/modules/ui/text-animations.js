@@ -17,7 +17,8 @@ class Animations {
       return;
     }
 
-    gsap.delayedCall(0.1, () => {
+    // Give the DOM a moment to fully render before applying animations
+    gsap.delayedCall(0.5, () => {
       this.initGlobalAnimations();
       this.initialized = true;
       ScrollTrigger.refresh();
@@ -28,20 +29,32 @@ class Animations {
   refresh() {
     if (this.initialized) {
       console.log('Refreshing animations...');
+      
+      // Kill all ScrollTrigger instances
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
 
+      // Revert SplitText instances
       const splitsToRevert = [];
       document.querySelectorAll('[data-gsap="text"]').forEach(element => {
         const split = this.splitTextInstances.get(element);
-        if (split && split.revert) {
+        if (split && typeof split.revert === 'function') {
           splitsToRevert.push(split);
         }
       });
-      splitsToRevert.forEach(split => split.revert());
+      
+      splitsToRevert.forEach(split => {
+        try {
+          split.revert();
+        } catch (error) {
+          console.warn('Error reverting SplitText:', error);
+        }
+      });
 
+      // Clear the WeakMap
       this.splitTextInstances = new WeakMap();
 
-      gsap.delayedCall(0.1, () => {
+      // Re-initialize with a slight delay
+      gsap.delayedCall(0.5, () => {
         this.initGlobalAnimations();
         ScrollTrigger.refresh();
         console.log('Animations Refreshed and ScrollTrigger refreshed.');
@@ -51,20 +64,36 @@ class Animations {
 
   initGlobalAnimations() {
     console.log('Initializing global animations...');
+    
+    // Handle text animations
     const textElements = document.querySelectorAll('[data-gsap="text"]');
+    console.log(`Found ${textElements.length} text elements for animation`);
+    
     textElements.forEach((element) => {
       try {
+        // Make sure the element is visible before splitting
+        gsap.set(element, { visibility: "visible" });
+        
+        // Create new SplitText instance
         const split = new SplitText(element, {
           type: "words,chars",
           charsClass: "char",
           wordsClass: "word",
         });
+        
+        // Store the instance for cleanup
         this.splitTextInstances.set(element, split);
 
         const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-        gsap.set(split.chars, { autoAlpha: 0, filter: "blur(5px)", y: "10px" });
+        // Set initial state
+        gsap.set(split.chars, { 
+          autoAlpha: 0, 
+          filter: "blur(5px)", 
+          y: "10px" 
+        });
 
+        // Create the animation
         gsap.to(split.chars, {
           autoAlpha: 1,
           filter: "blur(0px)",
@@ -76,13 +105,18 @@ class Animations {
           scrollTrigger: {
             trigger: element,
             start: "top 85%",
+            markers: false,  // Set to true for debugging
+            onEnter: () => console.log(`Text animation triggered for: ${element.textContent.substring(0, 20)}...`)
           }
         });
+        
+        console.log(`Created text animation for: ${element.textContent.substring(0, 20)}...`);
       } catch (error) {
-        console.warn('Error creating text animation:', error);
+        console.warn('Error creating text animation:', error, element);
       }
     });
 
+    // Handle fade-up animations
     const fadeUpElements = document.querySelectorAll('[data-gsap="fade-up"]');
     fadeUpElements.forEach((element) => {
       const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
@@ -110,16 +144,26 @@ class Animations {
 
   cleanup() {
     console.log('Cleaning up animations...');
+    
+    // Kill all ScrollTrigger instances
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
 
+    // Revert SplitText instances
     const splitsToRevert = [];
     document.querySelectorAll('[data-gsap="text"]').forEach(element => {
         const split = this.splitTextInstances.get(element);
-        if (split && split.revert) {
+        if (split && typeof split.revert === 'function') {
             splitsToRevert.push(split);
         }
     });
-    splitsToRevert.forEach(split => split.revert());
+    
+    splitsToRevert.forEach(split => {
+      try {
+        split.revert();
+      } catch (error) {
+        console.warn('Error reverting SplitText:', error);
+      }
+    });
 
     this.splitTextInstances = new WeakMap();
     this.initialized = false;
@@ -129,7 +173,10 @@ class Animations {
 const animations = new Animations();
 
 document.addEventListener('DOMContentLoaded', () => {
-    animations.init();
+    // Allow a short delay for all scripts to load
+    setTimeout(() => {
+        animations.init();
+    }, 100);
 
     let resizeTimer;
     window.addEventListener('resize', () => {
