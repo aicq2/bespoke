@@ -51,7 +51,8 @@ class HorizontalScroll {
         const section = document.querySelector(".card-slider-section");
         const stickyScreen = document.querySelector(".card-slider_component");
         const track = document.querySelector(".swiper-wrapper");
-
+        const container = document.querySelector(".container-large");
+    
         if (!section || !stickyScreen || !track || !container) {
             console.warn('Required elements not found for horizontal scroll', {
                 section: !!section,
@@ -98,6 +99,7 @@ class HorizontalScroll {
     
         this.scrollTrigger = tl.scrollTrigger;
     }
+    
 
     initMobileSlider() {
         this.swiper = new Swiper(".swiper", {
