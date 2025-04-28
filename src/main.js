@@ -21,45 +21,30 @@ window.addEventListener('scroll', () => {
   lastScrollY = currentScrollY;
 });
 
-// Monitor document height changes
-let lastDocHeight = 0;
-const checkDocumentHeight = () => {
-  const currentHeight = document.documentElement.scrollHeight;
-  if (lastDocHeight !== 0 && Math.abs(currentHeight - lastDocHeight) > 10) {
-    console.warn('Document height changed:', {
-      previous: lastDocHeight,
-      current: currentHeight,
-      difference: currentHeight - lastDocHeight
-    });
-  }
-  lastDocHeight = currentHeight;
-};
-
-setInterval(checkDocumentHeight, 500);
-
-// Override scrollTo and scrollBy to detect programmatic scrolling
+// Override scrollTo and scrollBy to detect and potentially block programmatic scrolling
 const originalScrollTo = window.scrollTo;
 window.scrollTo = function() {
+  // Log the call
   console.warn('scrollTo called with arguments:', arguments);
+  
+  // IMPORTANT: Block scrollTo calls that come from ScrollTrigger refreshes
+  // This is the key fix for the jumping issue
+  const stack = new Error().stack || '';
+  if (stack.includes('refresh') && arguments[1] !== 0) {
+    console.warn('Blocked scrollTo from ScrollTrigger refresh');
+    return;
+  }
+  
   return originalScrollTo.apply(this, arguments);
 };
-
-// Override ScrollTrigger.refresh if available
-if (typeof ScrollTrigger !== 'undefined') {
-  const originalRefresh = ScrollTrigger.refresh;
-  ScrollTrigger.refresh = function() {
-    console.warn('ScrollTrigger.refresh called at ' + new Date().toISOString());
-    return originalRefresh.apply(this, arguments);
-  };
-}
 
 // Initialize debugging tools after DOM is loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
-    checkDocumentHeight(); // Initial height check
+    // Initial setup
   });
 } else {
-  checkDocumentHeight(); // Initial height check
+  // Initial setup
 }
 // ===== DEBUGGING CODE END =====
 
@@ -75,6 +60,34 @@ import { nextProject } from './modules/features/next-project.js';
 import { homeScroll } from './modules/features/scroll/home-scroll.js';
 import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
 
+// IMPORTANT: Add this before any ScrollTrigger is used
+// This prevents ScrollTrigger from forcing scroll position on refresh
+function preventScrollPositionReset() {
+  if (typeof ScrollTrigger !== 'undefined') {
+    // Store the original method
+    const originalRefresh = ScrollTrigger.refresh;
+    
+    // Override the refresh method
+    ScrollTrigger.refresh = function() {
+      // Save current scroll position
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      
+      // Call the original refresh
+      const result = originalRefresh.apply(this, arguments);
+      
+      // Restore scroll position after a very short delay
+      setTimeout(() => {
+        window.scrollTo(scrollX, scrollY);
+      }, 10);
+      
+      return result;
+    };
+    
+    console.log('ScrollTrigger refresh modified to prevent scroll jumps');
+  }
+}
+
 function initializeSiteModules() {
   // Check for required global dependencies
   if (typeof window.gsap === 'undefined') {
@@ -88,6 +101,9 @@ function initializeSiteModules() {
         typeof window.ScrollSmoother !== 'undefined' &&
         typeof window.Flip !== 'undefined') {
       gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
+      
+      // Apply our fix to prevent scroll jumps
+      preventScrollPositionReset();
     }
   } catch (error) {
     console.warn('Error registering GSAP plugins:', error);
@@ -158,7 +174,7 @@ if (document.readyState === 'loading') {
   initializeSiteModules();
 }
 
-// Handle window resize events - THIS COULD BE THE CULPRIT
+// Handle window resize events - MODIFIED TO REDUCE IMPACT
 let resizeTimeout;
 let lastResizeTime = 0;
 
@@ -173,7 +189,7 @@ window.addEventListener('resize', () => {
   }
   lastResizeTime = now;
   
-  // Throttle resize events
+  // IMPORTANT: Increase throttle time to reduce refresh frequency
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     console.warn('Resize event triggered, refreshing modules');
@@ -181,12 +197,9 @@ window.addEventListener('resize', () => {
     // Log viewport size
     console.log(`Viewport size: ${window.innerWidth}x${window.innerHeight}`);
     
-    // IMPORTANT: Try disabling ScrollTrigger.refresh() to see if it fixes the jumps
-    // Comment out this entire block to test
-    if (typeof ScrollTrigger !== 'undefined') {
-      console.warn('ScrollTrigger.refresh() called from resize handler');
-      ScrollTrigger.refresh();
-    }
+    // Save current scroll position before refreshing
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
     
     // Refresh all modules
     if (animations) animations.refresh();
@@ -213,9 +226,17 @@ window.addEventListener('resize', () => {
       nextProject.refresh();
     }
     
-    // Check document height after refresh
-    setTimeout(checkDocumentHeight, 100);
-  }, 250);
+    // Refresh ScrollTrigger with our modified version that preserves scroll position
+    if (typeof ScrollTrigger !== 'undefined') {
+      console.warn('ScrollTrigger.refresh() called from resize handler');
+      ScrollTrigger.refresh();
+      
+      // Restore scroll position after a short delay
+      setTimeout(() => {
+        window.scrollTo(scrollX, scrollY);
+      }, 50);
+    }
+  }, 500); // Increased from 250ms to 500ms to reduce frequency
 });
 
 // Expose modules globally for debugging
