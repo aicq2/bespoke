@@ -1,14 +1,14 @@
 // src/main.js
 import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
-import { animations } from './modules/ui/text-animations.js';
+//import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
 import { menuAnimations } from './modules/ui/menu.js';
 import { fallingLogos } from './modules/features/falling-logos.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
-//import { homeScroll } from './modules/features/scroll/home-scroll.js';
+import { homeScroll } from './modules/features/scroll/home-scroll.js';
 import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
 
 function initializeSiteModules() {
@@ -20,7 +20,7 @@ function initializeSiteModules() {
 
  
   // Initialize GSAP plugins if available
-/*
+
 try {
   if (typeof window.ScrollTrigger !== 'undefined' && 
       typeof window.ScrollSmoother !== 'undefined' &&
@@ -30,7 +30,7 @@ try {
 } catch (error) {
   console.warn('Error registering GSAP plugins:', error);
 }
-*/
+
 
   // Initialize page detector first
   let currentPage = 'unknown';
@@ -56,11 +56,11 @@ try {
     }
   }
   
-  try {
+  /*try {
     animations.init();
   } catch (error) {
     console.warn('Error initializing animations:', error);
-  }
+  }*/
   
   try {
     menuAnimations.init();
@@ -84,11 +84,11 @@ try {
       console.warn('Error initializing falling logos:', error);
     }
     
-    /*try {
+    try {
       homeScroll.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing home scroll:', error);
-    }*/
+    }
   }
   
   if (currentPage === 'contacts') {
@@ -132,7 +132,7 @@ try {
   window.siteModules = {
     smoothScroll,
     pageDetector,
-    animations,
+    //animations,
     buttonAnimations,
     menuAnimations,
     fallingLogos,
@@ -156,7 +156,7 @@ window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
     // Refresh modules on resize
-    animations.refresh();
+    //animations.refresh();
     buttonAnimations.refresh();
     menuAnimations.refresh();
     
@@ -192,13 +192,13 @@ window.addEventListener('resize', () => {
 window.siteModules = {
   smoothScroll,
   pageDetector,
-  animations,
+  //animations,
   buttonAnimations,
   menuAnimations,
   fallingLogos,
   formSteps,
   projectGrid,
   nextProject,
-  //homeScroll,
+  homeScroll,
   horizontalScroll
 };
