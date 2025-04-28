@@ -1,7 +1,26 @@
 // src/main.js
 
 // ===== DEBUGGING CODE START =====
-// Monitor scroll jumps
+// Disable these modules for testing
+const DISABLE_ANIMATIONS = false;
+const DISABLE_SCROLLTRIGGER = false;
+
+// Override ScrollTrigger if needed
+if (DISABLE_SCROLLTRIGGER && typeof window.ScrollTrigger !== 'undefined') {
+  // Save the original
+  window._originalScrollTrigger = window.ScrollTrigger;
+  // Replace with dummy
+  window.ScrollTrigger = {
+    create: () => ({ kill: () => {} }),
+    refresh: () => {},
+    update: () => {},
+    getAll: () => [],
+    kill: () => {}
+  };
+  console.log('ScrollTrigger disabled for debugging');
+}
+
+// Monitor scroll jumps with enhanced logging
 let lastScrollY = 0;
 let scrollTimeout;
 
@@ -10,10 +29,13 @@ window.addEventListener('scroll', () => {
   const jumpThreshold = 50; // Adjust as needed
   
   if (Math.abs(currentScrollY - lastScrollY) > jumpThreshold) {
-    console.warn('Scroll jump detected:', {
+    console.warn('Scroll jump detected at ' + new Date().toISOString(), {
       previous: lastScrollY,
       current: currentScrollY,
-      difference: currentScrollY - lastScrollY
+      difference: currentScrollY - lastScrollY,
+      activeElement: document.activeElement,
+      visibleHeight: window.innerHeight,
+      documentHeight: document.documentElement.scrollHeight
     });
   }
   
@@ -29,6 +51,37 @@ window.addEventListener('scroll', () => {
   }, 100);
 });
 
+// Monitor document height changes
+let lastDocHeight = 0;
+const checkDocumentHeight = () => {
+  const currentHeight = document.documentElement.scrollHeight;
+  if (lastDocHeight !== 0 && Math.abs(currentHeight - lastDocHeight) > 10) {
+    console.warn('Document height changed:', {
+      previous: lastDocHeight,
+      current: currentHeight,
+      difference: currentHeight - lastDocHeight,
+      timestamp: new Date().toISOString()
+    });
+  }
+  lastDocHeight = currentHeight;
+};
+
+setInterval(checkDocumentHeight, 200);
+
+// Override scrollTo and scrollBy to detect programmatic scrolling
+const originalScrollTo = window.scrollTo;
+const originalScrollBy = window.scrollBy;
+
+window.scrollTo = function() {
+  console.warn('scrollTo called with arguments:', arguments);
+  return originalScrollTo.apply(this, arguments);
+};
+
+window.scrollBy = function() {
+  console.warn('scrollBy called with arguments:', arguments);
+  return originalScrollBy.apply(this, arguments);
+};
+
 // Monitor transform changes
 const observeTransforms = () => {
   const observer = new MutationObserver((mutations) => {
@@ -38,7 +91,8 @@ const observeTransforms = () => {
           mutation.target.style.transform !== 'none') {
         console.warn('Transform detected during scroll:', {
           element: mutation.target,
-          transform: mutation.target.style.transform
+          transform: mutation.target.style.transform,
+          timestamp: new Date().toISOString()
         });
       }
     });
@@ -76,15 +130,51 @@ document.addEventListener('touchstart', (e) => {
   // e.preventDefault();
 }, { passive: true });
 
+// iOS-specific debugging
+if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+  console.log('iOS device detected');
+  
+  // Monitor viewport height changes (common iOS issue)
+  let lastViewportHeight = window.innerHeight;
+  window.addEventListener('resize', () => {
+    const newViewportHeight = window.innerHeight;
+    if (Math.abs(newViewportHeight - lastViewportHeight) > 50) {
+      console.warn('iOS viewport height changed significantly:', {
+        previous: lastViewportHeight,
+        current: newViewportHeight,
+        timestamp: new Date().toISOString()
+      });
+      lastViewportHeight = newViewportHeight;
+    }
+  });
+}
+
+// Override ScrollTrigger.update if available
+if (typeof ScrollTrigger !== 'undefined' && !DISABLE_SCROLLTRIGGER) {
+  const originalUpdate = ScrollTrigger.update;
+  ScrollTrigger.update = function() {
+    console.warn('ScrollTrigger.update called at ' + new Date().toISOString());
+    return originalUpdate.apply(this, arguments);
+  };
+  
+  const originalRefresh = ScrollTrigger.refresh;
+  ScrollTrigger.refresh = function() {
+    console.warn('ScrollTrigger.refresh called at ' + new Date().toISOString());
+    return originalRefresh.apply(this, arguments);
+  };
+}
+
 // Initialize debugging tools after DOM is loaded
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
     observeTransforms();
     checkFixedElements();
+    checkDocumentHeight(); // Initial height check
   });
 } else {
   observeTransforms();
   checkFixedElements();
+  checkDocumentHeight(); // Initial height check
 }
 // ===== DEBUGGING CODE END =====
 
@@ -109,7 +199,8 @@ function initializeSiteModules() {
   
   // Initialize GSAP plugins if available
   try {
-    if (typeof window.ScrollTrigger !== 'undefined' && 
+    if (!DISABLE_SCROLLTRIGGER && 
+        typeof window.ScrollTrigger !== 'undefined' && 
         typeof window.ScrollSmoother !== 'undefined' &&
         typeof window.Flip !== 'undefined') {
       gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
@@ -145,22 +236,24 @@ function initializeSiteModules() {
     }
   }
   
-  try {
-    animations.init();
-  } catch (error) {
-    console.warn('Error initializing animations:', error);
-  }
-  
-  try {
-    menuAnimations.init();
-  } catch (error) {
-    console.warn('Error initializing menu animations:', error);
-  }
+  if (!DISABLE_ANIMATIONS) {
+    try {
+      animations.init();
+    } catch (error) {
+      console.warn('Error initializing animations:', error);
+    }
+    
+    try {
+      menuAnimations.init();
+    } catch (error) {
+      console.warn('Error initializing menu animations:', error);
+    }
 
-  try {
-    buttonAnimations.init();
-  } catch (error) {
-    console.warn('Error initializing button animations:', error);
+    try {
+      buttonAnimations.init();
+    } catch (error) {
+      console.warn('Error initializing button animations:', error);
+    }
   }
 
   // Initialize page-specific modules
@@ -212,7 +305,8 @@ function initializeSiteModules() {
 
   // Refresh ScrollTrigger after everything is initialized
   setTimeout(() => {
-    if (typeof ScrollTrigger !== 'undefined') {
+    if (typeof ScrollTrigger !== 'undefined' && !DISABLE_SCROLLTRIGGER) {
+      console.log('Initial ScrollTrigger.refresh() called');
       ScrollTrigger.refresh();
     }
   }, 300);
@@ -239,17 +333,28 @@ if (document.readyState === 'loading') {
   initializeSiteModules();
 }
 
-// Handle window resize events
+// Handle window resize events - THIS COULD BE THE CULPRIT
 let resizeTimeout;
+let lastResizeTime = 0;
 window.addEventListener('resize', () => {
+  const now = Date.now();
+  console.log(`Resize event detected at ${new Date().toISOString()}, ${now - lastResizeTime}ms since last resize`);
+  lastResizeTime = now;
+  
+  // Throttle resize events
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
-    console.log('Resize event triggered, refreshing modules');
+    console.warn('Resize event triggered, refreshing modules at ' + new Date().toISOString());
+    
+    // Log viewport size
+    console.log(`Viewport size: ${window.innerWidth}x${window.innerHeight}`);
     
     // Refresh modules on resize
-    animations.refresh();
-    buttonAnimations.refresh();
-    menuAnimations.refresh();
+    if (!DISABLE_ANIMATIONS) {
+      animations.refresh();
+      buttonAnimations.refresh();
+      menuAnimations.refresh();
+    }
     
     // Refresh page-specific modules if needed
     if (pageDetector.isPage('home')) {
@@ -264,7 +369,6 @@ window.addEventListener('resize', () => {
       horizontalScroll.refresh();
     }
     
-  
     if (pageDetector.isPage('projects')) {
       projectGrid.refresh();
     }
@@ -273,9 +377,14 @@ window.addEventListener('resize', () => {
       nextProject.refresh();
     }
     
-    if (typeof ScrollTrigger !== 'undefined') {
+    // This could be causing the jumps
+    if (typeof ScrollTrigger !== 'undefined' && !DISABLE_SCROLLTRIGGER) {
+      console.warn('ScrollTrigger.refresh() called from resize handler');
       ScrollTrigger.refresh();
     }
+    
+    // Check document height after refresh
+    setTimeout(checkDocumentHeight, 100);
   }, 250);
 });
 
