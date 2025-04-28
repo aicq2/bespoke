@@ -238,15 +238,26 @@ class FallingLogos {
     }
   
     handleResize() {
-      //console.log("Resize event triggered");
       clearTimeout(this.resizeTimeout);
       this.resizeTimeout = setTimeout(() => {
-        if (document.querySelector(".tag-canvas")) {
+        const containerElement = document.querySelector(".tag-canvas");
+        if (!containerElement) return;
+  
+        const newWidth = containerElement.clientWidth;
+        const newHeight = containerElement.clientHeight;
+  
+        // Only reinitialize if size change is significant
+        if (
+          Math.abs(newWidth - this.lastWidth) > 50 ||
+          Math.abs(newHeight - this.lastHeight) > 50
+        ) {
           this.initSimulation();
         }
       }, 250);
     }
   }
+
+  
   
   const fallingLogos = new FallingLogos();
   export { fallingLogos };
