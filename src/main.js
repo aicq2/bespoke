@@ -18,10 +18,7 @@ function initializeSiteModules() {
     return;
   }
 
-  window.addEventListener('scroll', () => {
-    console.log('Scroll position:', window.scrollY);
-  });
-  
+ 
   // Initialize GSAP plugins if available
 /*
 try {
