@@ -48,19 +48,32 @@ class HorizontalScroll {
     }
 
     initDesktopScroll() {
-        const section = document.querySelector(".section-horizontal");
-        const stickyScreen = document.querySelector(".sticky-screen");
+        const section = document.querySelector(".card-slider-section");
+        const stickyScreen = document.querySelector(".card-slider_component");
         const track = document.querySelector(".swiper-wrapper");
 
-        if (!section || !stickyScreen || !track) {
-            console.warn('Required elements not found for horizontal scroll');
+        if (!section || !stickyScreen || !track || !container) {
+            console.warn('Required elements not found for horizontal scroll', {
+                section: !!section,
+                stickyScreen: !!stickyScreen,
+                track: !!track,
+                container: !!container
+            });
             return;
         }
-
+    
         const getScrollAmount = () => {
-            return track.scrollWidth - window.innerWidth;
+            const trackWidth = track.scrollWidth;
+            const containerWidth = container.offsetWidth;
+            const scrollDistance = trackWidth - containerWidth;
+            console.log('Scroll calculation:', {
+                trackWidth,
+                containerWidth,
+                scrollDistance
+            });
+            return Math.max(0, scrollDistance);
         };
-
+    
         let tl = gsap.timeline({
             scrollTrigger: {
                 trigger: section,
@@ -69,15 +82,20 @@ class HorizontalScroll {
                 pin: stickyScreen,
                 anticipatePin: 1,
                 scrub: 1,
-                invalidateOnRefresh: true
+                invalidateOnRefresh: true,
+                // Add these for debugging
+                markers: true,
+                onUpdate: self => {
+                    console.log('Progress:', self.progress);
+                }
             }
         });
-
+    
         tl.to(track, {
             x: () => -getScrollAmount(),
             ease: "none"
         });
-
+    
         this.scrollTrigger = tl.scrollTrigger;
     }
 
