@@ -1,5 +1,5 @@
 // src/main.js
-import { smoothScroll } from './modules/core/smooth-scroll.js';
+//import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
 import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
@@ -39,11 +39,11 @@ function initializeSiteModules() {
   }
   
   // Initialize shared modules for all pages
-  try {
+  /*try {
     smoothScroll.init();
   } catch (error) {
     console.warn('Error initializing smooth scroll:', error);
-  }
+  }*/
 
   if (pageDetector.isOneOfPages(['about', 'services'])) {
     try {
@@ -127,7 +127,7 @@ function initializeSiteModules() {
 
   // Expose modules globally only after initialization
   window.siteModules = {
-    smoothScroll,
+    //smoothScroll,
     pageDetector,
     animations,
     buttonAnimations,
@@ -187,7 +187,7 @@ window.addEventListener('resize', () => {
 
 // Expose modules globally for debugging
 window.siteModules = {
-  smoothScroll,
+  //smoothScroll,
   pageDetector,
   animations,
   buttonAnimations,
