@@ -1,4 +1,4 @@
-// src/modules/features/text-animation.js
+// src/modules/ui/text-animations.js
 
 class TextAnimation {
   constructor() {
@@ -6,6 +6,10 @@ class TextAnimation {
     this.animations = [];
     this.fadeAnimations = [];
     this.resizeObserver = null;
+    this.viewportHeight = window.innerHeight;
+    this.lastScrollY = window.scrollY;
+    this.scrollTimeout = null;
+    this.isRefreshing = false;
   }
 
   init() {
@@ -15,6 +19,9 @@ class TextAnimation {
       return;
     }
 
+    // Store initial viewport height
+    this.viewportHeight = window.innerHeight;
+    
     // Handle text splitting animations
     const textElements = document.querySelectorAll('[data-gsap="text"]');
     if (textElements.length > 0) {
@@ -31,10 +38,87 @@ class TextAnimation {
       });
     }
 
-    // Handle browser bar issues on mobile
-    this.setupResizeObserver();
-
+    // Set up event listeners for mobile
+    this.setupMobileHandlers();
+    
     this.initialized = true;
+  }
+
+  setupMobileHandlers() {
+    // Clean up existing handlers
+    if (this.resizeObserver) {
+      this.resizeObserver.disconnect();
+      this.resizeObserver = null;
+    }
+    
+    // Smart resize observer that only triggers on significant height changes
+    // This helps avoid refreshes when the address bar appears/disappears
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(this.handleResize.bind(this));
+      this.resizeObserver.observe(document.documentElement);
+    } else {
+      // Fallback for browsers without ResizeObserver
+      window.addEventListener('resize', this.debounce(this.handleResize.bind(this), 200));
+    }
+    
+    // Handle scroll events to detect when the address bar appears/disappears
+    window.addEventListener('scroll', this.handleScroll.bind(this), { passive: true });
+    
+    // Handle orientation changes explicitly
+    window.addEventListener('orientationchange', () => {
+      // Delay the refresh to allow the browser to complete the orientation change
+      setTimeout(() => {
+        this.smartRefresh();
+      }, 300);
+    });
+  }
+  
+  handleResize(entries) {
+    // Skip small height changes that are likely due to address bar
+    const newHeight = window.innerHeight;
+    const heightDiff = Math.abs(this.viewportHeight - newHeight);
+    
+    // Only trigger a refresh for significant height changes (more than 20% of viewport)
+    // or width changes which indicate a true resize or orientation change
+    if (heightDiff > this.viewportHeight * 0.2 || 
+        entries && entries[0] && entries[0].contentRect.width !== window.innerWidth) {
+      this.viewportHeight = newHeight;
+      this.smartRefresh();
+    }
+  }
+  
+  handleScroll() {
+    // Clear existing timeout
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+    }
+    
+    // Set a new timeout to detect when scrolling stops
+    this.scrollTimeout = setTimeout(() => {
+      const currentScrollY = window.scrollY;
+      const scrollDiff = Math.abs(this.lastScrollY - currentScrollY);
+      
+      // If there was a significant scroll, update ScrollTrigger without refreshing animations
+      if (scrollDiff > 50 && typeof ScrollTrigger !== 'undefined' && !this.isRefreshing) {
+        ScrollTrigger.refresh(false); // false = don't force layout recalculation
+      }
+      
+      this.lastScrollY = currentScrollY;
+    }, 200);
+  }
+  
+  smartRefresh() {
+    if (this.isRefreshing) return;
+    
+    this.isRefreshing = true;
+    
+    // Use a minimal refresh approach that updates ScrollTrigger positions
+    // without recreating all animations
+    if (typeof ScrollTrigger !== 'undefined') {
+      ScrollTrigger.refresh();
+    }
+    
+    this.isRefreshing = false;
   }
 
   splitAndAnimateText(element) {
@@ -72,12 +156,14 @@ class TextAnimation {
       }
       
       // Animate each character
-      const charElements = wordSpan.querySelectorAll('.char');
+      const charElements = wordSpan.querySelectorAll('.word');
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: element,
           start: 'top bottom-=100',
-          toggleActions: 'play none none none'
+          toggleActions: 'play none none none',
+          // Add this to prevent the animation from restarting
+          once: true
         }
       });
       
@@ -112,7 +198,9 @@ class TextAnimation {
       scrollTrigger: {
         trigger: element,
         start: 'top bottom-=100',
-        toggleActions: 'play none none none'
+        toggleActions: 'play none none none',
+        // Add this to prevent the animation from restarting
+        once: true
       }
     });
     
@@ -127,35 +215,6 @@ class TextAnimation {
     this.fadeAnimations.push(tl);
   }
 
-  setupResizeObserver() {
-    // Clean up existing observer
-    if (this.resizeObserver) {
-      this.resizeObserver.disconnect();
-    }
-    
-    // Create a resize observer to handle mobile browser bar issues
-    this.resizeObserver = new ResizeObserver(this.debounce(() => {
-      if (typeof ScrollTrigger !== 'undefined') {
-        ScrollTrigger.refresh();
-      }
-    }, 200));
-    
-    // Observe document body
-    this.resizeObserver.observe(document.body);
-    
-    // Also handle regular window resize
-    window.addEventListener('resize', this.debounce(() => {
-      this.refreshAnimations();
-    }, 200));
-    
-    // Handle orientation change explicitly
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        this.refreshAnimations();
-      }, 300);
-    });
-  }
-
   debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -168,48 +227,19 @@ class TextAnimation {
     };
   }
 
-  refreshAnimations() {
-    if (typeof ScrollTrigger !== 'undefined') {
-      ScrollTrigger.refresh(true);
-    }
-  }
-
   refresh() {
     if (!this.initialized) {
       return;
     }
 
     // Kill existing animations
-    this.animations.forEach((tl) => {
-      if (tl && tl.scrollTrigger) {
-        tl.scrollTrigger.kill(true);
-      }
-      if (tl && tl.kill) {
-        tl.kill();
-      }
-    });
-    this.animations = [];
-    
-    this.fadeAnimations.forEach((tl) => {
-      if (tl && tl.scrollTrigger) {
-        tl.scrollTrigger.kill(true);
-      }
-      if (tl && tl.kill) {
-        tl.kill();
-      }
-    });
-    this.fadeAnimations = [];
-    
-    // Reset elements
-    document.querySelectorAll('[data-gsap="fade-up"]').forEach(el => {
-      gsap.set(el, { clearProps: 'all' });
-    });
+    this.cleanup(true);
     
     // Reinitialize
     this.init();
   }
 
-  cleanup() {
+  cleanup(preserveElements = false) {
     // Kill all animations
     this.animations.forEach((tl) => {
       if (tl && tl.scrollTrigger) {
@@ -237,10 +267,18 @@ class TextAnimation {
       this.resizeObserver = null;
     }
     
-    // Reset elements
-    document.querySelectorAll('[data-gsap="fade-up"]').forEach(el => {
-      gsap.set(el, { clearProps: 'all' });
-    });
+    // Clear any pending timeouts
+    if (this.scrollTimeout) {
+      clearTimeout(this.scrollTimeout);
+      this.scrollTimeout = null;
+    }
+    
+    // Only reset elements if not preserving them for refresh
+    if (!preserveElements) {
+      document.querySelectorAll('[data-gsap="fade-up"]').forEach(el => {
+        gsap.set(el, { clearProps: 'all' });
+      });
+    }
     
     this.initialized = false;
   }
