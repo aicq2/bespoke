@@ -4,6 +4,7 @@ class Animations {
   constructor() {
     this.initialized = false;
     this.splitTextInstances = new WeakMap();
+    this.activeAnimations = new Set();
   }
 
   init() {
@@ -26,11 +27,16 @@ class Animations {
   refresh() {
     if (this.initialized) {
       // Kill existing ScrollTriggers
+      this.activeAnimations.forEach(tween => tween.kill());
+      this.activeAnimations.clear();
+      
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
       
       // Revert split text
       this.splitTextInstances.forEach((split, element) => {
-        split.revert();
+        if (split && split.revert) {
+          split.revert();
+        }
       });
       
       // Clear the stored instances
@@ -45,8 +51,6 @@ class Animations {
     // Text split animations
     const textElements = document.querySelectorAll('[data-gsap="text"]');
     textElements.forEach((element) => {
-      if (isAnimated(element)) return;
-
       gsap.set(element, { visibility: "visible" });
 
       // Create new split instance
@@ -61,7 +65,7 @@ class Animations {
 
       const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-      gsap.from(split.chars, {
+      const tween = gsap.from(split.chars, {
         opacity: 0,
         filter: "blur(5px)",
         duration: 1,
@@ -71,20 +75,19 @@ class Animations {
         scrollTrigger: {
           trigger: element,
           start: "top 85%",
-          once: true,
-          onEnter: () => markAsAnimated(element)
+          once: true
         }
       });
+
+      this.activeAnimations.add(tween);
     });
 
     // Fade up animations
     const fadeUpElements = document.querySelectorAll('[data-gsap="fade-up"]');
     fadeUpElements.forEach((element) => {
-      if (isAnimated(element)) return;
-
       const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-      gsap.fromTo(
+      const tween = gsap.fromTo(
         element,
         {
           y: "4rem",
@@ -100,36 +103,27 @@ class Animations {
           scrollTrigger: {
             trigger: element,
             start: "top 85%",
-            once: true,
-            onEnter: () => markAsAnimated(element)
+            once: true
           }
         }
       );
-    });
 
-    // Handle any killed ScrollTriggers
-    ScrollTrigger.addEventListener("refresh", () => {
-      textElements.forEach((element) => {
-        if (!isAnimated(element)) {
-          gsap.set(element, { visibility: "visible", opacity: 1, filter: "blur(0px)" });
-          markAsAnimated(element);
-        }
-      });
-
-      fadeUpElements.forEach((element) => {
-        if (!isAnimated(element)) {
-          gsap.set(element, { visibility: "visible", opacity: 1, y: 0 });
-          markAsAnimated(element);
-        }
-      });
+      this.activeAnimations.add(tween);
     });
   }
 
   cleanup() {
+    this.activeAnimations.forEach(tween => tween.kill());
+    this.activeAnimations.clear();
+    
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
+    
     this.splitTextInstances.forEach((split, element) => {
-      split.revert();
+      if (split && split.revert) {
+        split.revert();
+      }
     });
+    
     this.splitTextInstances = new WeakMap();
     this.initialized = false;
   }
