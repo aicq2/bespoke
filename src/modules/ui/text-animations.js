@@ -1,10 +1,8 @@
-import { markAsAnimated, isAnimated } from '../../utils/animation-state.js';
 
 class Animations {
   constructor() {
     this.initialized = false;
     this.splitTextInstances = new WeakMap();
-    this.activeAnimations = new Set();
   }
 
   init() {
@@ -27,9 +25,6 @@ class Animations {
   refresh() {
     if (this.initialized) {
       // Kill existing ScrollTriggers
-      this.activeAnimations.forEach(tween => tween.kill());
-      this.activeAnimations.clear();
-      
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
       
       // Revert split text
@@ -53,33 +48,34 @@ class Animations {
     textElements.forEach((element) => {
       gsap.set(element, { visibility: "visible" });
 
-      // Create new split instance
-      const split = new SplitText(element, {
-        type: "words,chars",
-        charsClass: "char",
-        wordsClass: "word",
-      });
+      try {
+        // Create new split instance
+        const split = new SplitText(element, {
+          type: "words,chars",
+          charsClass: "char",
+          wordsClass: "word",
+        });
 
-      // Store the split instance
-      this.splitTextInstances.set(element, split);
+        // Store the split instance
+        this.splitTextInstances.set(element, split);
 
-      const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
+        const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-      const tween = gsap.from(split.chars, {
-        opacity: 0,
-        filter: "blur(5px)",
-        duration: 1,
-        delay: delay,
-        ease: "power3.out",
-        stagger: 0.05,
-        scrollTrigger: {
-          trigger: element,
-          start: "top 85%",
-          once: true
-        }
-      });
-
-      this.activeAnimations.add(tween);
+        gsap.from(split.chars, {
+          opacity: 0,
+          filter: "blur(5px)",
+          duration: 1,
+          delay: delay,
+          ease: "power3.out",
+          stagger: 0.05,
+          scrollTrigger: {
+            trigger: element,
+            start: "top 85%",
+          }
+        });
+      } catch (error) {
+        console.warn('Error creating text animation:', error);
+      }
     });
 
     // Fade up animations
@@ -87,7 +83,7 @@ class Animations {
     fadeUpElements.forEach((element) => {
       const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-      const tween = gsap.fromTo(
+      gsap.fromTo(
         element,
         {
           y: "4rem",
@@ -103,19 +99,13 @@ class Animations {
           scrollTrigger: {
             trigger: element,
             start: "top 85%",
-            once: true
           }
         }
       );
-
-      this.activeAnimations.add(tween);
     });
   }
 
   cleanup() {
-    this.activeAnimations.forEach(tween => tween.kill());
-    this.activeAnimations.clear();
-    
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
     
     this.splitTextInstances.forEach((split, element) => {
