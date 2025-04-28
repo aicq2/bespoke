@@ -6,6 +6,7 @@ class ProjectScroll {
         this.initialized = false;
         this.breakpoint = 768; // Mobile breakpoint
         this.resizeTimeout = null;
+        this.topOffset = '4rem'; // Top offset for pinning
     }
 
     init(params = {}) {
@@ -79,7 +80,6 @@ class ProjectScroll {
         };
 
         // Calculate the optimal height for the container
-        // This is crucial to avoid empty space after scroll
         const calculateOptimalHeight = () => {
             // Get the tallest slide height
             let maxSlideHeight = 0;
@@ -101,16 +101,24 @@ class ProjectScroll {
         container.style.height = `${containerHeight}px`;
         container.style.minHeight = `${containerHeight}px`;
 
+        // Create a marker after the horizontal scroll to ensure proper spacing
+        this.createSpacerAfterHorizontalScroll(container, containerHeight);
+
+        // Convert rem to pixels for pinSpacing calculation
+        const remValue = parseFloat(this.topOffset);
+        const remInPixels = remValue * parseFloat(getComputedStyle(document.documentElement).fontSize);
+
         // Create timeline
         let tl = gsap.timeline({
             scrollTrigger: {
                 trigger: container,
-                start: "top top",
+                start: `top+=${remInPixels} top+=${remInPixels}`, // Pin at top 4rem
                 end: () => `+=${getScrollAmount()}`,
                 pin: true,
                 anticipatePin: 1,
                 scrub: 1,
                 invalidateOnRefresh: true,
+                pinSpacing: true, // Important to prevent content overlap
                 onUpdate: (self) => {
                     // Optional: add progress indicator or other effects
                 }
@@ -124,6 +132,31 @@ class ProjectScroll {
         });
 
         this.scrollTrigger = tl.scrollTrigger;
+    }
+
+    // Create a spacer element after the horizontal scroll to prevent content overlap
+    createSpacerAfterHorizontalScroll(container, containerHeight) {
+        // Remove any existing spacer first
+        const existingSpacer = document.querySelector('.horizontal-scroll-spacer');
+        if (existingSpacer) {
+            existingSpacer.parentNode.removeChild(existingSpacer);
+        }
+
+        // Create a new spacer
+        const spacer = document.createElement('div');
+        spacer.className = 'horizontal-scroll-spacer';
+        spacer.style.height = '0px'; // Start with zero height
+        spacer.style.width = '100%';
+        spacer.style.display = 'block';
+        spacer.style.position = 'relative';
+        spacer.style.pointerEvents = 'none';
+        
+        // Insert after the horizontal scroll container
+        if (container.nextSibling) {
+            container.parentNode.insertBefore(spacer, container.nextSibling);
+        } else {
+            container.parentNode.appendChild(spacer);
+        }
     }
 
     handleResize() {
@@ -181,6 +214,12 @@ class ProjectScroll {
             // Remove the spacer
             spacer.parentNode.removeChild(spacer);
         });
+        
+        // Remove the horizontal scroll spacer
+        const horizontalScrollSpacer = document.querySelector('.horizontal-scroll-spacer');
+        if (horizontalScrollSpacer) {
+            horizontalScrollSpacer.parentNode.removeChild(horizontalScrollSpacer);
+        }
         
         // Reset any transforms on the swiper wrapper
         const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
