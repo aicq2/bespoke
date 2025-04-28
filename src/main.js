@@ -1,5 +1,5 @@
 // src/main.js
-//import { smoothScroll } from './modules/core/smooth-scroll.js';
+import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
 import { animations } from './modules/ui/text-animations.js';
 import { buttonAnimations } from './modules/ui/buttons.js';
@@ -8,7 +8,7 @@ import { fallingLogos } from './modules/features/falling-logos.js';
 import { formSteps } from './modules/features/form-steps.js';
 import { projectGrid } from './modules/features/project-grid.js';
 import { nextProject } from './modules/features/next-project.js';
-import { homeScroll } from './modules/features/scroll/home-scroll.js';
+//import { homeScroll } from './modules/features/scroll/home-scroll.js';
 import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
 
 function initializeSiteModules() {
@@ -45,11 +45,11 @@ try {
   }
   
   // Initialize shared modules for all pages
-  /*try {
+  try {
     smoothScroll.init();
   } catch (error) {
     console.warn('Error initializing smooth scroll:', error);
-  }*/
+  }
 
   if (pageDetector.isOneOfPages(['about', 'services'])) {
     try {
@@ -87,11 +87,11 @@ try {
       console.warn('Error initializing falling logos:', error);
     }
     
-    try {
+    /*try {
       homeScroll.init({ currentPage });
     } catch (error) {
       console.warn('Error initializing home scroll:', error);
-    }
+    }*/
   }
   
   if (currentPage === 'contacts') {
@@ -133,7 +133,7 @@ try {
 
   // Expose modules globally only after initialization
   window.siteModules = {
-    //smoothScroll,
+    smoothScroll,
     pageDetector,
     animations,
     buttonAnimations,
@@ -142,7 +142,7 @@ try {
     formSteps,
     projectGrid,
     nextProject,
-    homeScroll
+   // homeScroll
   };
 }
 
@@ -164,9 +164,9 @@ window.addEventListener('resize', () => {
     menuAnimations.refresh();
     
     // Refresh page-specific modules if needed
-    if (pageDetector.isPage('home')) {
+   /* if (pageDetector.isPage('home')) {
       homeScroll.refresh();
-    }
+    }*/
     
     if (pageDetector.isPage('contacts')) {
       formSteps.refresh();
@@ -193,7 +193,7 @@ window.addEventListener('resize', () => {
 
 // Expose modules globally for debugging
 window.siteModules = {
-  //smoothScroll,
+  smoothScroll,
   pageDetector,
   animations,
   buttonAnimations,
@@ -202,6 +202,6 @@ window.siteModules = {
   formSteps,
   projectGrid,
   nextProject,
-  homeScroll,
+  //homeScroll,
   horizontalScroll
 };
