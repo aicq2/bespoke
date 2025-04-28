@@ -1,53 +1,4 @@
 // src/main.js
-
-// ===== SIMPLIFIED DEBUGGING CODE START =====
-// Monitor scroll jumps with enhanced logging
-let lastScrollY = 0;
-let scrollTimeout;
-
-window.addEventListener('scroll', () => {
-  const currentScrollY = window.scrollY;
-  const jumpThreshold = 50; // Adjust as needed
-  
-  if (Math.abs(currentScrollY - lastScrollY) > jumpThreshold) {
-    console.warn('Scroll jump detected:', {
-      previous: lastScrollY,
-      current: currentScrollY,
-      difference: currentScrollY - lastScrollY,
-      timestamp: new Date().toISOString()
-    });
-  }
-  
-  lastScrollY = currentScrollY;
-});
-
-// Override scrollTo and scrollBy to detect and potentially block programmatic scrolling
-const originalScrollTo = window.scrollTo;
-window.scrollTo = function() {
-  // Log the call
-  console.warn('scrollTo called with arguments:', arguments);
-  
-  // IMPORTANT: Block scrollTo calls that come from ScrollTrigger refreshes
-  // This is the key fix for the jumping issue
-  const stack = new Error().stack || '';
-  if (stack.includes('refresh') && arguments[1] !== 0) {
-    console.warn('Blocked scrollTo from ScrollTrigger refresh');
-    return;
-  }
-  
-  return originalScrollTo.apply(this, arguments);
-};
-
-// Initialize debugging tools after DOM is loaded
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    // Initial setup
-  });
-} else {
-  // Initial setup
-}
-// ===== DEBUGGING CODE END =====
-
 import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
 import { animations } from './modules/ui/text-animations.js';
@@ -60,8 +11,7 @@ import { nextProject } from './modules/features/next-project.js';
 import { homeScroll } from './modules/features/scroll/home-scroll.js';
 import { horizontalScroll } from './modules/features/scroll/about-services-scroll';
 
-// IMPORTANT: Add this before any ScrollTrigger is used
-// This prevents ScrollTrigger from forcing scroll position on refresh
+// Prevent ScrollTrigger from forcing scroll position on refresh
 function preventScrollPositionReset() {
   if (typeof ScrollTrigger !== 'undefined') {
     // Store the original method
@@ -83,8 +33,6 @@ function preventScrollPositionReset() {
       
       return result;
     };
-    
-    console.log('ScrollTrigger refresh modified to prevent scroll jumps');
   }
 }
 
@@ -117,36 +65,81 @@ function initializeSiteModules() {
     console.warn('Error initializing page detector:', error);
   }
   
-  // Create an array of all modules for easier management
-  const allModules = [
-    // Commenting out smooth scroll for debugging
-    // smoothScroll,
-    animations,
-    buttonAnimations,
-    menuAnimations,
-    fallingLogos,
-    formSteps,
-    projectGrid,
-    nextProject,
-    homeScroll,
-    horizontalScroll
-  ];
-  
-  // Initialize all modules - each module will decide if it should run
-  allModules.forEach(module => {
+  // Initialize shared modules for all pages
+  try {
+    smoothScroll.init();
+  } catch (error) {
+    console.warn('Error initializing smooth scroll:', error);
+  }
+
+  if (pageDetector.isOneOfPages(['about', 'services'])) {
     try {
-      if (module && typeof module.init === 'function') {
-        module.init({ currentPage });
-      }
+      horizontalScroll.init({ currentPage });
     } catch (error) {
-      console.warn(`Error initializing module:`, error);
+      console.warn('Error initializing horizontal scroll:', error);
     }
-  });
+  }
+  
+  try {
+    animations.init();
+  } catch (error) {
+    console.warn('Error initializing animations:', error);
+  }
+  
+  try {
+    menuAnimations.init();
+  } catch (error) {
+    console.warn('Error initializing menu animations:', error);
+  }
+
+  try {
+    buttonAnimations.init();
+  } catch (error) {
+    console.warn('Error initializing button animations:', error);
+  }
+
+  // Initialize page-specific modules
+  if (currentPage === 'home') {
+    try {
+      fallingLogos.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing falling logos:', error);
+    }
+    
+    try {
+      homeScroll.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing home scroll:', error);
+    }
+  }
+  
+  if (currentPage === 'contacts') {
+    try {
+      formSteps.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing form steps:', error);
+    }
+  }
+  
+  if (currentPage === 'projects') {
+    try {
+      projectGrid.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing project grid:', error);
+    }
+  }
+  
+  if (currentPage === 'project-details') {
+    try {
+      nextProject.init({ currentPage });
+    } catch (error) {
+      console.warn('Error initializing next project navigation:', error);
+    }
+  }
 
   // Refresh ScrollTrigger after everything is initialized
   setTimeout(() => {
     if (typeof ScrollTrigger !== 'undefined') {
-      console.log('Initial ScrollTrigger.refresh() called');
       ScrollTrigger.refresh();
     }
   }, 300);
@@ -174,69 +167,72 @@ if (document.readyState === 'loading') {
   initializeSiteModules();
 }
 
-// Handle window resize events - MODIFIED TO REDUCE IMPACT
-let resizeTimeout;
-let lastResizeTime = 0;
+// Track significant dimension changes
+let lastWidth = window.innerWidth;
+let lastHeight = window.innerHeight;
+const widthThreshold = 50;  // Only care about significant width changes
+const heightThreshold = 150; // More tolerant of height changes
 
+// Handle window resize events - IMPROVED VERSION
+let resizeTimeout;
 window.addEventListener('resize', () => {
-  const now = Date.now();
-  const timeSinceLastResize = now - lastResizeTime;
-  
-  // Only log if it's been more than 500ms since last resize
-  // to reduce console spam
-  if (timeSinceLastResize > 500) {
-    console.log(`Resize event detected, ${timeSinceLastResize}ms since last resize`);
-  }
-  lastResizeTime = now;
-  
-  // IMPORTANT: Increase throttle time to reduce refresh frequency
   clearTimeout(resizeTimeout);
-  resizeTimeout = setTimeout(() => {
-    console.warn('Resize event triggered, refreshing modules');
-    
-    // Log viewport size
-    console.log(`Viewport size: ${window.innerWidth}x${window.innerHeight}`);
-    
-    // Save current scroll position before refreshing
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
-    
-    // Refresh all modules
-    if (animations) animations.refresh();
-    if (buttonAnimations) buttonAnimations.refresh();
-    if (menuAnimations) menuAnimations.refresh();
-    
-    if (pageDetector.isPage('home') && homeScroll) {
-      homeScroll.refresh();
-    }
-    
-    if (pageDetector.isPage('contacts') && formSteps) {
-      formSteps.refresh();
-    }
-    
-    if (pageDetector.isOneOfPages(['about', 'services']) && horizontalScroll) {
-      horizontalScroll.refresh();
-    }
-    
-    if (pageDetector.isPage('projects') && projectGrid) {
-      projectGrid.refresh();
-    }
-    
-    if (pageDetector.isPage('project-details') && nextProject) {
-      nextProject.refresh();
-    }
-    
-    // Refresh ScrollTrigger with our modified version that preserves scroll position
-    if (typeof ScrollTrigger !== 'undefined') {
-      console.warn('ScrollTrigger.refresh() called from resize handler');
-      ScrollTrigger.refresh();
+  
+  // Get current dimensions
+  const currentWidth = window.innerWidth;
+  const currentHeight = window.innerHeight;
+  
+  // Calculate changes
+  const widthChange = Math.abs(currentWidth - lastWidth);
+  const heightChange = Math.abs(currentHeight - lastHeight);
+  
+  // Only process if there's a significant change
+  if (widthChange > widthThreshold || heightChange > heightThreshold) {
+    resizeTimeout = setTimeout(() => {
+      // Update stored dimensions
+      lastWidth = currentWidth;
+      lastHeight = currentHeight;
       
-      // Restore scroll position after a short delay
-      setTimeout(() => {
-        window.scrollTo(scrollX, scrollY);
-      }, 50);
-    }
-  }, 500); // Increased from 250ms to 500ms to reduce frequency
+      // Save current scroll position
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
+      
+      // Refresh modules
+      if (animations) animations.refresh();
+      if (buttonAnimations) buttonAnimations.refresh();
+      if (menuAnimations) menuAnimations.refresh();
+      
+      if (pageDetector.isPage('home') && homeScroll) {
+        homeScroll.refresh();
+      }
+      
+      if (pageDetector.isPage('contacts') && formSteps) {
+        formSteps.refresh();
+      }
+      
+      if (pageDetector.isOneOfPages(['about', 'services']) && horizontalScroll) {
+        horizontalScroll.refresh();
+      }
+      
+      if (pageDetector.isPage('projects') && projectGrid) {
+        projectGrid.refresh();
+      }
+      
+      if (pageDetector.isPage('project-details') && nextProject) {
+        nextProject.refresh();
+      }
+      
+      // Only refresh ScrollTrigger if we're not on mobile OR if width changed significantly
+      if ((currentWidth > 768 || widthChange > 100) && typeof ScrollTrigger !== 'undefined') {
+        ScrollTrigger.refresh();
+        
+        // Restore scroll position
+        setTimeout(() => {
+          window.scrollTo(scrollX, scrollY);
+        }, 50);
+      }
+    }, 500); // Longer delay for better performance
+  }
 });
 
 // Expose modules globally for debugging
