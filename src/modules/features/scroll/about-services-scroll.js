@@ -85,10 +85,10 @@ class HorizontalScroll {
                 scrub: 1,
                 invalidateOnRefresh: true,
                 // Add these for debugging
-                markers: true,
+                /*markers: true,
                 onUpdate: self => {
                     console.log('Progress:', self.progress);
-                }
+                }*/
             }
         });
     
