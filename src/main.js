@@ -1,4 +1,93 @@
 // src/main.js
+
+// ===== DEBUGGING CODE START =====
+// Monitor scroll jumps
+let lastScrollY = 0;
+let scrollTimeout;
+
+window.addEventListener('scroll', () => {
+  const currentScrollY = window.scrollY;
+  const jumpThreshold = 50; // Adjust as needed
+  
+  if (Math.abs(currentScrollY - lastScrollY) > jumpThreshold) {
+    console.warn('Scroll jump detected:', {
+      previous: lastScrollY,
+      current: currentScrollY,
+      difference: currentScrollY - lastScrollY
+    });
+  }
+  
+  lastScrollY = currentScrollY;
+  
+  // Check for scroll prevention
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if (document.body.style.overflow === 'hidden' || 
+        document.documentElement.style.overflow === 'hidden') {
+      console.error('Scroll might be prevented by overflow:hidden');
+    }
+  }, 100);
+});
+
+// Monitor transform changes
+const observeTransforms = () => {
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.attributeName === 'style' && 
+          mutation.target.style.transform && 
+          mutation.target.style.transform !== 'none') {
+        console.warn('Transform detected during scroll:', {
+          element: mutation.target,
+          transform: mutation.target.style.transform
+        });
+      }
+    });
+  });
+  
+  observer.observe(document.body, { 
+    attributes: true, 
+    subtree: true, 
+    attributeFilter: ['style'] 
+  });
+};
+
+// Check for fixed position elements
+const checkFixedElements = () => {
+  const fixedElements = [];
+  const allElements = document.querySelectorAll('*');
+  
+  allElements.forEach(el => {
+    const style = window.getComputedStyle(el);
+    if (style.position === 'fixed') {
+      fixedElements.push({
+        element: el,
+        zIndex: parseInt(style.zIndex) || 0
+      });
+    }
+  });
+  
+  console.log('Fixed position elements that might affect scrolling:', fixedElements);
+};
+
+// Log touch events for debugging
+document.addEventListener('touchstart', (e) => {
+  console.log('Touch start detected');
+  // Uncomment to test if touch events are the issue
+  // e.preventDefault();
+}, { passive: true });
+
+// Initialize debugging tools after DOM is loaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    observeTransforms();
+    checkFixedElements();
+  });
+} else {
+  observeTransforms();
+  checkFixedElements();
+}
+// ===== DEBUGGING CODE END =====
+
 import { smoothScroll } from './modules/core/smooth-scroll.js';
 import { pageDetector } from './modules/core/page-detector.js';
 import { animations } from './modules/ui/text-animations.js';
@@ -17,20 +106,17 @@ function initializeSiteModules() {
     console.warn('GSAP not found. Many animations will not work.');
     return;
   }
-
- 
+  
   // Initialize GSAP plugins if available
-
-try {
-  if (typeof window.ScrollTrigger !== 'undefined' && 
-      typeof window.ScrollSmoother !== 'undefined' &&
-      typeof window.Flip !== 'undefined') {
-    gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
+  try {
+    if (typeof window.ScrollTrigger !== 'undefined' && 
+        typeof window.ScrollSmoother !== 'undefined' &&
+        typeof window.Flip !== 'undefined') {
+      gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
+    }
+  } catch (error) {
+    console.warn('Error registering GSAP plugins:', error);
   }
-} catch (error) {
-  console.warn('Error registering GSAP plugins:', error);
-}
-
 
   // Initialize page detector first
   let currentPage = 'unknown';
@@ -42,11 +128,14 @@ try {
   }
   
   // Initialize shared modules for all pages
+  // Commenting out smooth scroll for debugging
+  /*
   try {
     smoothScroll.init();
   } catch (error) {
     console.warn('Error initializing smooth scroll:', error);
   }
+  */
 
   if (pageDetector.isOneOfPages(['about', 'services'])) {
     try {
@@ -155,6 +244,8 @@ let resizeTimeout;
 window.addEventListener('resize', () => {
   clearTimeout(resizeTimeout);
   resizeTimeout = setTimeout(() => {
+    console.log('Resize event triggered, refreshing modules');
+    
     // Refresh modules on resize
     animations.refresh();
     buttonAnimations.refresh();
