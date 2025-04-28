@@ -1,4 +1,3 @@
-
 class Animations {
   constructor() {
     this.initialized = false;
@@ -18,52 +17,58 @@ class Animations {
       return;
     }
 
-    this.initGlobalAnimations();
-    this.initialized = true;
+    gsap.delayedCall(0.1, () => {
+      this.initGlobalAnimations();
+      this.initialized = true;
+      ScrollTrigger.refresh();
+      console.log('Animations Initialized and ScrollTrigger refreshed.');
+    });
   }
 
   refresh() {
     if (this.initialized) {
-      // Kill existing ScrollTriggers
+      console.log('Refreshing animations...');
       ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-      
-      // Revert split text
-      this.splitTextInstances.forEach((split, element) => {
+
+      const splitsToRevert = [];
+      document.querySelectorAll('[data-gsap="text"]').forEach(element => {
+        const split = this.splitTextInstances.get(element);
         if (split && split.revert) {
-          split.revert();
+          splitsToRevert.push(split);
         }
       });
-      
-      // Clear the stored instances
+      splitsToRevert.forEach(split => split.revert());
+
       this.splitTextInstances = new WeakMap();
-      
-      // Reinit animations
-      this.initGlobalAnimations();
+
+      gsap.delayedCall(0.1, () => {
+        this.initGlobalAnimations();
+        ScrollTrigger.refresh();
+        console.log('Animations Refreshed and ScrollTrigger refreshed.');
+      });
     }
   }
 
   initGlobalAnimations() {
-    // Text split animations
+    console.log('Initializing global animations...');
     const textElements = document.querySelectorAll('[data-gsap="text"]');
     textElements.forEach((element) => {
-      gsap.set(element, { visibility: "visible" });
-
       try {
-        // Create new split instance
         const split = new SplitText(element, {
           type: "words,chars",
           charsClass: "char",
           wordsClass: "word",
         });
-
-        // Store the split instance
         this.splitTextInstances.set(element, split);
 
         const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
 
-        gsap.from(split.chars, {
-          opacity: 0,
-          filter: "blur(5px)",
+        gsap.set(split.chars, { autoAlpha: 0, filter: "blur(5px)", y: "10px" });
+
+        gsap.to(split.chars, {
+          autoAlpha: 1,
+          filter: "blur(0px)",
+          y: "0px",
           duration: 1,
           delay: delay,
           ease: "power3.out",
@@ -78,7 +83,6 @@ class Animations {
       }
     });
 
-    // Fade up animations
     const fadeUpElements = document.querySelectorAll('[data-gsap="fade-up"]');
     fadeUpElements.forEach((element) => {
       const delay = element.dataset.delay ? parseFloat(element.dataset.delay) : 0;
@@ -92,7 +96,6 @@ class Animations {
         {
           y: "0rem",
           autoAlpha: 1,
-          visibility: "visible",
           duration: 1.2,
           delay: delay,
           ease: "power3.out",
@@ -106,18 +109,38 @@ class Animations {
   }
 
   cleanup() {
+    console.log('Cleaning up animations...');
     ScrollTrigger.getAll().forEach(trigger => trigger.kill());
-    
-    this.splitTextInstances.forEach((split, element) => {
-      if (split && split.revert) {
-        split.revert();
-      }
+
+    const splitsToRevert = [];
+    document.querySelectorAll('[data-gsap="text"]').forEach(element => {
+        const split = this.splitTextInstances.get(element);
+        if (split && split.revert) {
+            splitsToRevert.push(split);
+        }
     });
-    
+    splitsToRevert.forEach(split => split.revert());
+
     this.splitTextInstances = new WeakMap();
     this.initialized = false;
   }
 }
 
 const animations = new Animations();
+
+document.addEventListener('DOMContentLoaded', () => {
+    animations.init();
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            console.log('Resize detected, refreshing animations...');
+            if (animations.initialized) {
+                animations.refresh();
+            }
+        }, 250);
+    });
+});
+
 export { animations };
