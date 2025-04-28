@@ -32,6 +32,10 @@ class ProjectScroll {
                     // Only initialize if we're on desktop
                     if (window.innerWidth >= this.breakpoint) {
                         this.initProjectHorizontalScroll(horizontalScrollContainer);
+                    } else {
+                        // On mobile, reset any fixed height
+                        horizontalScrollContainer.style.height = '';
+                        horizontalScrollContainer.style.minHeight = '';
                     }
                     
                     this.initialized = true;
@@ -52,14 +56,17 @@ class ProjectScroll {
 
         // Don't initialize on mobile
         if (window.innerWidth < this.breakpoint) {
+            container.style.height = '';
+            container.style.minHeight = '';
             return;
         }
 
         // Find the slider component inside the container
         const sliderComponent = container.querySelector('.project-slider_component');
         const swiperWrapper = container.querySelector('.swiper-wrapper');
+        const slides = container.querySelectorAll('.swiper-slide');
         
-        if (!sliderComponent || !swiperWrapper) {
+        if (!sliderComponent || !swiperWrapper || slides.length === 0) {
             console.warn('Required elements not found for project scroll');
             return;
         }
@@ -71,6 +78,29 @@ class ProjectScroll {
             return Math.max(0, wrapperWidth - containerWidth);
         };
 
+        // Calculate the optimal height for the container
+        // This is crucial to avoid empty space after scroll
+        const calculateOptimalHeight = () => {
+            // Get the tallest slide height
+            let maxSlideHeight = 0;
+            slides.forEach(slide => {
+                const slideImg = slide.querySelector('img');
+                if (slideImg) {
+                    const imgHeight = slideImg.offsetHeight;
+                    maxSlideHeight = Math.max(maxSlideHeight, imgHeight);
+                }
+            });
+
+            // Add some padding for controls if needed
+            const padding = 40;
+            return maxSlideHeight + padding;
+        };
+
+        // Set the container height based on content
+        const containerHeight = calculateOptimalHeight();
+        container.style.height = `${containerHeight}px`;
+        container.style.minHeight = `${containerHeight}px`;
+
         // Create timeline
         let tl = gsap.timeline({
             scrollTrigger: {
@@ -80,7 +110,10 @@ class ProjectScroll {
                 pin: true,
                 anticipatePin: 1,
                 scrub: 1,
-                invalidateOnRefresh: true
+                invalidateOnRefresh: true,
+                onUpdate: (self) => {
+                    // Optional: add progress indicator or other effects
+                }
             }
         });
 
@@ -103,17 +136,14 @@ class ProjectScroll {
             
             if (!horizontalScrollContainer) return;
             
-            // If we're on desktop and don't have a ScrollTrigger, initialize it
-            if (isDesktop && !this.scrollTrigger) {
+            if (isDesktop) {
+                // If we're on desktop, reinitialize to recalculate heights
                 this.initProjectHorizontalScroll(horizontalScrollContainer);
-            } 
-            // If we're on mobile and have a ScrollTrigger, clean it up
-            else if (!isDesktop && this.scrollTrigger) {
+            } else {
+                // If we're on mobile, clean up and reset heights
                 this.cleanup();
-            }
-            // If we're on desktop and already have a ScrollTrigger, just refresh it
-            else if (isDesktop && this.scrollTrigger) {
-                this.scrollTrigger.refresh();
+                horizontalScrollContainer.style.height = '';
+                horizontalScrollContainer.style.minHeight = '';
             }
         }, 250);
     }
@@ -124,15 +154,14 @@ class ProjectScroll {
         const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
         if (!horizontalScrollContainer) return;
         
-        // Only refresh if we're on desktop
-        if (window.innerWidth >= this.breakpoint && this.scrollTrigger) {
-            this.scrollTrigger.refresh();
-        } else if (window.innerWidth < this.breakpoint && this.scrollTrigger) {
-            // Clean up if we're on mobile but still have a ScrollTrigger
-            this.cleanup();
-        } else if (window.innerWidth >= this.breakpoint && !this.scrollTrigger) {
-            // Initialize if we're on desktop but don't have a ScrollTrigger
+        if (window.innerWidth >= this.breakpoint) {
+            // On desktop, reinitialize to recalculate heights
             this.initProjectHorizontalScroll(horizontalScrollContainer);
+        } else {
+            // On mobile, clean up and reset heights
+            this.cleanup();
+            horizontalScrollContainer.style.height = '';
+            horizontalScrollContainer.style.minHeight = '';
         }
     }
 
@@ -157,6 +186,13 @@ class ProjectScroll {
         const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
         if (swiperWrapper) {
             gsap.set(swiperWrapper, { clearProps: "all" });
+        }
+        
+        // Reset container height
+        const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+        if (horizontalScrollContainer) {
+            horizontalScrollContainer.style.height = '';
+            horizontalScrollContainer.style.minHeight = '';
         }
     }
 }
