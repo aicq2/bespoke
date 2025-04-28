@@ -17,17 +17,23 @@ function initializeSiteModules() {
     console.warn('GSAP not found. Many animations will not work.');
     return;
   }
+
+  window.addEventListener('scroll', () => {
+    console.log('Scroll position:', window.scrollY);
+  });
   
   // Initialize GSAP plugins if available
-  try {
-    if (typeof window.ScrollTrigger !== 'undefined' && 
-        typeof window.ScrollSmoother !== 'undefined' &&
-        typeof window.Flip !== 'undefined') {
-      gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
-    }
-  } catch (error) {
-    console.warn('Error registering GSAP plugins:', error);
+/*
+try {
+  if (typeof window.ScrollTrigger !== 'undefined' && 
+      typeof window.ScrollSmoother !== 'undefined' &&
+      typeof window.Flip !== 'undefined') {
+    gsap.registerPlugin(ScrollTrigger, ScrollSmoother, Flip);
   }
+} catch (error) {
+  console.warn('Error registering GSAP plugins:', error);
+}
+*/
 
   // Initialize page detector first
   let currentPage = 'unknown';
