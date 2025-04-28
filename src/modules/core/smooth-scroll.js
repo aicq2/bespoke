@@ -1,236 +1,201 @@
-// src/modules/core/smooth-scroll.js
+// src/modules/features/scroll/project-scroll.js
 
-class SmoothScroll {
+class ProjectScroll {
   constructor() {
-    this.smoother = null;
-    this.breakpoint = 768;
-    this.isMobile = window.innerWidth < this.breakpoint || 
-                   'ontouchstart' in window || 
-                   navigator.maxTouchPoints > 0;
-    this.initialized = false;
-    this.scrollTriggers = [];
+      this.scrollTrigger = null;
+      this.initialized = false;
+      this.breakpoint = 768; // Mobile breakpoint
+      this.resizeTimeout = null;
   }
 
-  init() {
-    // Check for GSAP
-    if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
-      console.warn('GSAP or ScrollTrigger not found. Required for scroll functionality.');
-      return;
-    }
-    
-    // Register ScrollTrigger
-    try {
-      gsap.registerPlugin(ScrollTrigger);
-    } catch (error) {
-      console.warn('Error registering ScrollTrigger:', error);
-    }
-    
-    // Set up the appropriate scroll method based on device
-    if (this.isMobile) {
-      this.setupMobileScrolling();
-    } else {
-      this.setupDesktopScrolling();
-    }
-    
-    // Handle resize events
-    this.handleResize();
-    
-    this.initialized = true;
-  }
-
-  setupMobileScrolling() {
-    // 1. Kill any existing ScrollSmoother
-    this.killSmoother();
-    
-    // 2. Apply mobile-specific styles
-    document.documentElement.classList.add('is-mobile');
-    document.documentElement.classList.remove('is-desktop');
-    
-    // 3. Ensure proper scrolling behavior
-    document.body.style.overflow = 'auto';
-    document.documentElement.style.overflow = 'auto';
-    
-    // 4. Reset all transforms on scroll containers
-    const elements = [
-      '#smooth-wrapper', 
-      '#smooth-content', 
-      '.scrollsmoother-container', 
-      '.scrollsmoother-pin-spacer'
-    ];
-    
-    elements.forEach(selector => {
-      const els = document.querySelectorAll(selector);
-      if (els.length) {
-        els.forEach(el => {
-          // Completely reset all styles
-          el.style.cssText = '';
-          // Force default values for critical properties
-          el.style.transform = 'none';
-          el.style.position = '';
-          el.style.top = '';
-          el.style.left = '';
-          el.style.width = 'auto';
-          el.style.height = 'auto';
-        });
-      }
-    });
-    
-    // 5. Add !important override styles via a new style element
-    let styleEl = document.getElementById('mobile-scroll-fixes');
-    if (!styleEl) {
-      styleEl = document.createElement('style');
-      styleEl.id = 'mobile-scroll-fixes';
-      document.head.appendChild(styleEl);
-    }
-    
-    styleEl.textContent = `
-      @media (max-width: ${this.breakpoint}px) {
-        html, body {
-          overflow: auto !important;
-          height: auto !important;
-          position: relative !important;
-          transform: none !important;
-        }
-        #smooth-wrapper, #smooth-content {
-          transform: none !important;
-          position: relative !important;
-          top: 0 !important;
-          left: 0 !important;
-          width: auto !important;
-          height: auto !important;
-          will-change: auto !important;
-        }
-        .scrollsmoother-pin-spacer {
-          display: none !important;
-        }
-      }
-    `;
-    
-    // 6. Force DOM reflow
-    document.body.offsetHeight;
-    
-    // 7. Refresh ScrollTrigger
-    if (typeof ScrollTrigger !== 'undefined') {
-      ScrollTrigger.refresh(true); // true forces an immediate recalculation of all ScrollTriggers
-    }
-    
-    console.log('Mobile scrolling setup complete');
-  }
-
-  setupDesktopScrolling() {
-    // Only proceed if ScrollSmoother is available
-    if (typeof ScrollSmoother === 'undefined') {
-      console.warn('ScrollSmoother not found, falling back to native scrolling');
-      return;
-    }
-    
-    // If we're switching from mobile, clean up
-    this.killSmoother();
-    
-    // Mark as desktop
-    document.documentElement.classList.remove('is-mobile');
-    document.documentElement.classList.add('is-desktop');
-    
-    // Remove any mobile-specific styles
-    const mobileStyleEl = document.getElementById('mobile-scroll-fixes');
-    if (mobileStyleEl) {
-      mobileStyleEl.textContent = '';
-    }
-    
-    // Set up ScrollSmoother for desktop
-    const wrapper = document.getElementById('smooth-wrapper');
-    const content = document.getElementById('smooth-content');
-
-    if (!wrapper || !content) {
-      console.warn('Smooth scroll wrapper or content not found');
-      return;
-    }
-
-    try {
-      // Create with safe options
-      this.smoother = ScrollSmoother.create({
-        wrapper: wrapper,
-        content: content,
-        smooth: 1,
-        effects: true,
-        smoothTouch: false,
-        normalizeScroll: false
-      });
+  init(params = {}) {
+      const { currentPage } = params;
       
-      console.log('Desktop smooth scrolling initialized');
-    } catch (error) {
-      console.warn('Error initializing ScrollSmoother:', error);
-    }
+      if (currentPage !== 'project-details') {
+          return;
+      }
+
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+          console.warn('GSAP or ScrollTrigger not found. Project scroll requires these libraries.');
+          return;
+      }
+
+      try {
+          gsap.registerPlugin(ScrollTrigger);
+          
+          // Wait for DOM and images to be fully loaded
+          window.addEventListener('load', () => {
+              // Check if this project has horizontal scroll
+              const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+              
+              if (horizontalScrollContainer) {
+                  // Only initialize if we're on desktop
+                  if (window.innerWidth >= this.breakpoint) {
+                      this.initProjectHorizontalScroll(horizontalScrollContainer);
+                  } else {
+                      // On mobile, reset any fixed height
+                      horizontalScrollContainer.style.height = '';
+                      horizontalScrollContainer.style.minHeight = '';
+                  }
+                  
+                  this.initialized = true;
+                  
+                  // Add resize handler
+                  window.addEventListener('resize', this.handleResize.bind(this));
+              }
+          });
+          
+      } catch (error) {
+          console.error('Error initializing project horizontal scroll:', error);
+      }
   }
 
-  killSmoother() {
-    // Kill ScrollSmoother instance
-    if (this.smoother) {
-      this.smoother.kill();
-      this.smoother = null;
-    }
-    
-    // Kill all ScrollTrigger instances created for smooth scrolling
-    if (typeof ScrollTrigger !== 'undefined') {
-      // Find and kill all ScrollTriggers related to ScrollSmoother
-      const allScrollTriggers = ScrollTrigger.getAll();
-      for (let i = 0; i < allScrollTriggers.length; i++) {
-        const trigger = allScrollTriggers[i];
-        if (trigger.vars && trigger.vars.id && trigger.vars.id.includes('smoother')) {
-          trigger.kill();
-        }
+  initProjectHorizontalScroll(container) {
+      // Clean up any existing ScrollTrigger
+      this.cleanup();
+
+      // Don't initialize on mobile
+      if (window.innerWidth < this.breakpoint) {
+          container.style.height = '';
+          container.style.minHeight = '';
+          return;
       }
-    }
+
+      // Find the slider component inside the container
+      const sliderComponent = container.querySelector('.project-slider_component');
+      const swiperWrapper = container.querySelector('.swiper-wrapper');
+      const slides = container.querySelectorAll('.swiper-slide');
+      
+      if (!sliderComponent || !swiperWrapper || slides.length === 0) {
+          console.warn('Required elements not found for project scroll');
+          return;
+      }
+
+      // Calculate scroll amount based on wrapper width
+      const getScrollAmount = () => {
+          const wrapperWidth = swiperWrapper.scrollWidth;
+          const containerWidth = container.offsetWidth;
+          return Math.max(0, wrapperWidth - containerWidth);
+      };
+
+      // Calculate the optimal height for the container
+      // This is crucial to avoid empty space after scroll
+      const calculateOptimalHeight = () => {
+          // Get the tallest slide height
+          let maxSlideHeight = 0;
+          slides.forEach(slide => {
+              const slideImg = slide.querySelector('img');
+              if (slideImg) {
+                  const imgHeight = slideImg.offsetHeight;
+                  maxSlideHeight = Math.max(maxSlideHeight, imgHeight);
+              }
+          });
+
+          // Add some padding for controls if needed
+          const padding = 40;
+          return maxSlideHeight + padding;
+      };
+
+      // Set the container height based on content
+      const containerHeight = calculateOptimalHeight();
+      container.style.height = `${containerHeight}px`;
+      container.style.minHeight = `${containerHeight}px`;
+
+      // Create timeline
+      let tl = gsap.timeline({
+          scrollTrigger: {
+              trigger: container,
+              start: "top top",
+              end: () => `+=${getScrollAmount()}`,
+              pin: true,
+              anticipatePin: 1,
+              scrub: 1,
+              invalidateOnRefresh: true,
+              onUpdate: (self) => {
+                  // Optional: add progress indicator or other effects
+              }
+          }
+      });
+
+      // Animate wrapper
+      tl.to(swiperWrapper, {
+          x: () => -getScrollAmount(),
+          ease: "none"
+      });
+
+      this.scrollTrigger = tl.scrollTrigger;
   }
 
   handleResize() {
-    // Check device on resize
-    window.addEventListener('resize', () => {
-      const wasMobile = this.isMobile;
-      this.isMobile = window.innerWidth < this.breakpoint || 
-                     'ontouchstart' in window || 
-                     navigator.maxTouchPoints > 0;
+      if (!this.initialized) return;
       
-      // Only react if state changed
-      if (wasMobile !== this.isMobile) {
-        if (this.isMobile) {
-          this.setupMobileScrolling();
-        } else {
-          this.setupDesktopScrolling();
-        }
-      }
-    });
-    
-    // Special handler for orientation changes
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => {
-        this.isMobile = window.innerWidth < this.breakpoint || 
-                       'ontouchstart' in window || 
-                       navigator.maxTouchPoints > 0;
-                       
-        if (this.isMobile) {
-          this.setupMobileScrolling();
-        } else {
-          this.setupDesktopScrolling();
-        }
-      }, 300);
-    });
+      clearTimeout(this.resizeTimeout);
+      this.resizeTimeout = setTimeout(() => {
+          const isDesktop = window.innerWidth >= this.breakpoint;
+          const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+          
+          if (!horizontalScrollContainer) return;
+          
+          if (isDesktop) {
+              // If we're on desktop, reinitialize to recalculate heights
+              this.initProjectHorizontalScroll(horizontalScrollContainer);
+          } else {
+              // If we're on mobile, clean up and reset heights
+              this.cleanup();
+              horizontalScrollContainer.style.height = '';
+              horizontalScrollContainer.style.minHeight = '';
+          }
+      }, 250);
   }
 
   refresh() {
-    if (this.smoother) {
-      this.smoother.refresh();
-    }
-    
-    if (typeof ScrollTrigger !== 'undefined') {
-      ScrollTrigger.refresh();
-    }
+      if (!this.initialized) return;
+      
+      const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+      if (!horizontalScrollContainer) return;
+      
+      if (window.innerWidth >= this.breakpoint) {
+          // On desktop, reinitialize to recalculate heights
+          this.initProjectHorizontalScroll(horizontalScrollContainer);
+      } else {
+          // On mobile, clean up and reset heights
+          this.cleanup();
+          horizontalScrollContainer.style.height = '';
+          horizontalScrollContainer.style.minHeight = '';
+      }
   }
 
-  getSmoother() {
-    return this.smoother;
+  cleanup() {
+      if (this.scrollTrigger) {
+          this.scrollTrigger.kill();
+          this.scrollTrigger = null;
+      }
+      
+      // Clean up any pin-spacers that might be left behind
+      document.querySelectorAll('.pin-spacer').forEach(spacer => {
+          const content = spacer.querySelector(':scope > *:not(.pin-spacer)');
+          if (content) {
+              // Move the content outside the spacer
+              spacer.parentNode.insertBefore(content, spacer);
+          }
+          // Remove the spacer
+          spacer.parentNode.removeChild(spacer);
+      });
+      
+      // Reset any transforms on the swiper wrapper
+      const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
+      if (swiperWrapper) {
+          gsap.set(swiperWrapper, { clearProps: "all" });
+      }
+      
+      // Reset container height
+      const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+      if (horizontalScrollContainer) {
+          horizontalScrollContainer.style.height = '';
+          horizontalScrollContainer.style.minHeight = '';
+      }
   }
 }
 
-const smoothScroll = new SmoothScroll();
-export { smoothScroll };
+const projectScroll = new ProjectScroll();
+export { projectScroll };
