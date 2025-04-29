@@ -6,7 +6,6 @@ class ProjectScroll {
         this.initialized = false;
         this.breakpoint = 768; // Mobile breakpoint
         this.resizeTimeout = null;
-        this.topOffset = '4rem'; // Top offset for pinning
     }
 
     init(params = {}) {
@@ -34,9 +33,8 @@ class ProjectScroll {
                     if (window.innerWidth >= this.breakpoint) {
                         this.initProjectHorizontalScroll(horizontalScrollContainer);
                     } else {
-                        // On mobile, reset any fixed height
-                        horizontalScrollContainer.style.height = '';
-                        horizontalScrollContainer.style.minHeight = '';
+                        // On mobile, reset any styles
+                        this.resetStyles();
                     }
                     
                     this.initialized = true;
@@ -57,8 +55,7 @@ class ProjectScroll {
 
         // Don't initialize on mobile
         if (window.innerWidth < this.breakpoint) {
-            container.style.height = '';
-            container.style.minHeight = '';
+            this.resetStyles();
             return;
         }
 
@@ -72,118 +69,67 @@ class ProjectScroll {
             return;
         }
 
-        // Calculate scroll amount based on wrapper width
-        const getScrollAmount = () => {
-            const wrapperWidth = swiperWrapper.scrollWidth;
-            const containerWidth = container.offsetWidth;
-            return Math.max(0, wrapperWidth - containerWidth);
-        };
+        // Calculate the correct height for the horizontal scroll container
+        this.calculateAndSetContainerHeight(container, sliderComponent, swiperWrapper, slides);
 
-        // Calculate the optimal height for the container
-        const calculateOptimalHeight = () => {
-            // Get the tallest slide height
-            let maxSlideHeight = 0;
-            slides.forEach(slide => {
-                const slideImg = slide.querySelector('img');
-                if (slideImg) {
-                    const imgHeight = slideImg.offsetHeight;
-                    maxSlideHeight = Math.max(maxSlideHeight, imgHeight);
-                }
-            });
-
-            // Add some padding for controls if needed
-            const padding = 40;
-            return maxSlideHeight + padding;
-        };
-
-        // Set the container height based on content
-        const containerHeight = calculateOptimalHeight();
-        container.style.height = `${containerHeight}px`;
-        container.style.minHeight = `${containerHeight}px`;
-
-        // Convert rem to pixels for offset calculation
-        const remValue = parseFloat(this.topOffset);
-        const remInPixels = remValue * parseFloat(getComputedStyle(document.documentElement).fontSize);
-
-        // Create a pin spacer with the correct top offset
-        // First, set up the container to be positioned properly when pinned
-        gsap.set(container, {
-            position: 'relative',
-            top: 0,
-            left: 0,
-            width: '100%'
-        });
-
-        // Create timeline with specific pin settings
-        let tl = gsap.timeline({
-            scrollTrigger: {
-                trigger: container,
-                start: "top top+=64", // 4rem = 64px typically
-                end: () => `+=${getScrollAmount()}`,
-                pin: true,
-                anticipatePin: 1,
-                scrub: 1,
-                invalidateOnRefresh: true,
-                pinSpacing: true,
-                pinReparent: false, // Important for maintaining position
-                onEnter: () => {
-                    // When pinning starts, adjust the position to be 4rem from top
-                    gsap.set(".pin-spacer", { 
-                        position: "fixed",
-                        top: `${this.topOffset}`,
-                        width: "100%",
-                        zIndex: 10
-                    });
-                },
-                onRefresh: (self) => {
-                    // Ensure the pin-spacer stays at the correct position
-                    if (self.isActive) {
-                        gsap.set(".pin-spacer", { 
-                            position: "fixed",
-                            top: `${this.topOffset}`,
-                            width: "100%",
-                            zIndex: 10
-                        });
-                    }
-                }
+        // Create the horizontal scroll effect with ScrollTrigger
+        this.scrollTrigger = ScrollTrigger.create({
+            trigger: container,
+            start: "top top",
+            end: "bottom bottom",
+            scrub: true,
+            onUpdate: (self) => {
+                // Calculate the total scroll distance
+                const totalWidth = swiperWrapper.scrollWidth;
+                const containerWidth = container.offsetWidth;
+                const scrollDistance = totalWidth - containerWidth;
+                
+                // Calculate how far to scroll horizontally based on vertical scroll progress
+                const progress = self.progress;
+                const xPosition = -scrollDistance * progress;
+                gsap.set(swiperWrapper, { x: xPosition });
             }
         });
-
-        // Animate wrapper
-        tl.to(swiperWrapper, {
-            x: () => -getScrollAmount(),
-            ease: "none"
-        });
-
-        this.scrollTrigger = tl.scrollTrigger;
-
-        // Create a spacer to prevent content overlap
-        this.createSpacerAfterHorizontalScroll(container, containerHeight);
     }
 
-    // Create a spacer element after the horizontal scroll to prevent content overlap
-    createSpacerAfterHorizontalScroll(container, containerHeight) {
-        // Remove any existing spacer first
-        const existingSpacer = document.querySelector('.horizontal-scroll-spacer');
-        if (existingSpacer) {
-            existingSpacer.parentNode.removeChild(existingSpacer);
-        }
-
-        // Create a new spacer
-        const spacer = document.createElement('div');
-        spacer.className = 'horizontal-scroll-spacer';
-        spacer.style.height = `${containerHeight + 64}px`; // Add the 4rem offset
-        spacer.style.width = '100%';
-        spacer.style.display = 'block';
-        spacer.style.position = 'relative';
-        spacer.style.pointerEvents = 'none';
+    calculateAndSetContainerHeight(container, sliderComponent, swiperWrapper, slides) {
+        // Calculate the total width of all slides
+        const totalWidth = swiperWrapper.scrollWidth;
+        const containerWidth = container.offsetWidth;
         
-        // Insert after the horizontal scroll container
-        if (container.nextSibling) {
-            container.parentNode.insertBefore(spacer, container.nextSibling);
-        } else {
-            container.parentNode.appendChild(spacer);
+        // Calculate how much extra scroll space we need
+        const scrollDistance = totalWidth - containerWidth;
+        
+        // Get the height of the slider component
+        let sliderHeight = 0;
+        
+        // Try to get height from the tallest slide
+        slides.forEach(slide => {
+            const slideImg = slide.querySelector('img');
+            if (slideImg) {
+                const imgHeight = slideImg.offsetHeight;
+                sliderHeight = Math.max(sliderHeight, imgHeight);
+            }
+        });
+        
+        // If we couldn't get height from slides, use the component's height
+        if (sliderHeight === 0) {
+            sliderHeight = sliderComponent.offsetHeight;
         }
+        
+        // Add some padding
+        sliderHeight += 40;
+        
+        // Set minimum height for the container - this creates the scrolling space
+        // We need enough height to allow scrolling through the entire horizontal content
+        const containerHeight = scrollDistance + sliderHeight;
+        
+        // Set the container height
+        container.style.height = `${containerHeight}px`;
+        
+        console.log(`Set horizontal scroll container height to ${containerHeight}px`);
+        console.log(`- Slider height: ${sliderHeight}px`);
+        console.log(`- Scroll distance: ${scrollDistance}px`);
     }
 
     handleResize() {
@@ -197,13 +143,12 @@ class ProjectScroll {
             if (!horizontalScrollContainer) return;
             
             if (isDesktop) {
-                // If we're on desktop, reinitialize to recalculate heights
+                // If we're on desktop, reinitialize
                 this.initProjectHorizontalScroll(horizontalScrollContainer);
             } else {
-                // If we're on mobile, clean up and reset heights
+                // If we're on mobile, clean up and reset
                 this.cleanup();
-                horizontalScrollContainer.style.height = '';
-                horizontalScrollContainer.style.minHeight = '';
+                this.resetStyles();
             }
         }, 250);
     }
@@ -215,13 +160,26 @@ class ProjectScroll {
         if (!horizontalScrollContainer) return;
         
         if (window.innerWidth >= this.breakpoint) {
-            // On desktop, reinitialize to recalculate heights
+            // On desktop, reinitialize
             this.initProjectHorizontalScroll(horizontalScrollContainer);
         } else {
-            // On mobile, clean up and reset heights
+            // On mobile, clean up and reset
             this.cleanup();
+            this.resetStyles();
+        }
+    }
+
+    resetStyles() {
+        // Reset container styles
+        const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
+        if (horizontalScrollContainer) {
             horizontalScrollContainer.style.height = '';
-            horizontalScrollContainer.style.minHeight = '';
+        }
+
+        // Reset swiper wrapper transform
+        const swiperWrapper = document.querySelector('.swiper-wrapper');
+        if (swiperWrapper) {
+            gsap.set(swiperWrapper, { clearProps: "all" });
         }
     }
 
@@ -231,37 +189,7 @@ class ProjectScroll {
             this.scrollTrigger = null;
         }
         
-        // Clean up any pin-spacers that might be left behind
-        document.querySelectorAll('.pin-spacer').forEach(spacer => {
-            const content = spacer.querySelector(':scope > *:not(.pin-spacer)');
-            if (content) {
-                // Move the content outside the spacer
-                spacer.parentNode.insertBefore(content, spacer);
-            }
-            // Remove the spacer
-            spacer.parentNode.removeChild(spacer);
-        });
-        
-        // Remove the horizontal scroll spacer
-        const horizontalScrollSpacer = document.querySelector('.horizontal-scroll-spacer');
-        if (horizontalScrollSpacer) {
-            horizontalScrollSpacer.parentNode.removeChild(horizontalScrollSpacer);
-        }
-        
-        // Reset any transforms on the swiper wrapper
-        const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
-        if (swiperWrapper) {
-            gsap.set(swiperWrapper, { clearProps: "all" });
-        }
-        
-        // Reset container height and position
-        const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
-        if (horizontalScrollContainer) {
-            horizontalScrollContainer.style.height = '';
-            horizontalScrollContainer.style.minHeight = '';
-            horizontalScrollContainer.style.position = '';
-            horizontalScrollContainer.style.top = '';
-        }
+        this.resetStyles();
     }
 }
 
