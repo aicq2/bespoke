@@ -83,7 +83,7 @@ class SmoothScroll {
       document.head.appendChild(styleEl);
     }
     
-    styleEl.textContent = `
+  /*  styleEl.textContent = `
       @media (max-width: ${this.breakpoint}px) {
         html, body {
           overflow: auto !important;
@@ -104,7 +104,7 @@ class SmoothScroll {
           display: none !important;
         }
       }
-    `;
+    `;*/
     
     // 6. Force DOM reflow
     document.body.offsetHeight;
