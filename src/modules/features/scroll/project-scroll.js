@@ -4,14 +4,14 @@ class ProjectScroll {
     constructor() {
         this.scrollTrigger = null;
         this.initialized = false;
-        this.breakpoint = 768;
+        this.breakpoint = 768; // Mobile breakpoint
         this.resizeTimeout = null;
-        this.topOffset = '4rem';
+        this.topOffset = '4rem'; // Top offset for pinning
     }
 
     init(params = {}) {
         const { currentPage } = params;
-
+        
         if (currentPage !== 'project-details') {
             return;
         }
@@ -23,53 +23,65 @@ class ProjectScroll {
 
         try {
             gsap.registerPlugin(ScrollTrigger);
-
+            
+            // Wait for DOM and images to be fully loaded
             window.addEventListener('load', () => {
+                // Check if this project has horizontal scroll
                 const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
-
+                
                 if (horizontalScrollContainer) {
+                    // Only initialize if we're on desktop
                     if (window.innerWidth >= this.breakpoint) {
                         this.initProjectHorizontalScroll(horizontalScrollContainer);
                     } else {
+                        // On mobile, reset any fixed height
                         horizontalScrollContainer.style.height = '';
                         horizontalScrollContainer.style.minHeight = '';
                     }
-
+                    
                     this.initialized = true;
+                    
+                    // Add resize handler
                     window.addEventListener('resize', this.handleResize.bind(this));
                 }
             });
-
+            
         } catch (error) {
             console.error('Error initializing project horizontal scroll:', error);
         }
     }
 
     initProjectHorizontalScroll(container) {
+        // Clean up any existing ScrollTrigger
         this.cleanup();
 
+        // Don't initialize on mobile
         if (window.innerWidth < this.breakpoint) {
             container.style.height = '';
             container.style.minHeight = '';
             return;
         }
 
+        // Find the slider component inside the container
         const sliderComponent = container.querySelector('.project-slider_component');
         const swiperWrapper = container.querySelector('.swiper-wrapper');
         const slides = container.querySelectorAll('.swiper-slide');
-
+        
         if (!sliderComponent || !swiperWrapper || slides.length === 0) {
             console.warn('Required elements not found for project scroll');
             return;
         }
 
+        // Calculate scroll amount based on wrapper width
         const getScrollAmount = () => {
             const wrapperWidth = swiperWrapper.scrollWidth;
             const containerWidth = container.offsetWidth;
             return Math.max(0, wrapperWidth - containerWidth);
         };
 
+        // Calculate the optimal height for the container
         const calculateOptimalHeight = () => {
+            // Get the tallest slide height
             let maxSlideHeight = 0;
             slides.forEach(slide => {
                 const slideImg = slide.querySelector('img');
@@ -78,16 +90,23 @@ class ProjectScroll {
                     maxSlideHeight = Math.max(maxSlideHeight, imgHeight);
                 }
             });
+
+            // Add some padding for controls if needed
             const padding = 40;
             return maxSlideHeight + padding;
         };
 
+        // Set the container height based on content
         const containerHeight = calculateOptimalHeight();
         container.style.height = `${containerHeight}px`;
         container.style.minHeight = `${containerHeight}px`;
 
-        const startOffset = this.topOffset;
+        // Convert rem to pixels for offset calculation
+        const remValue = parseFloat(this.topOffset);
+        const remInPixels = remValue * parseFloat(getComputedStyle(document.documentElement).fontSize);
 
+        // Create a pin spacer with the correct top offset
+        // First, set up the container to be positioned properly when pinned
         gsap.set(container, {
             position: 'relative',
             top: 0,
@@ -95,20 +114,42 @@ class ProjectScroll {
             width: '100%'
         });
 
+        // Create timeline with specific pin settings
         let tl = gsap.timeline({
             scrollTrigger: {
                 trigger: container,
-                start: `top top+=${startOffset}`,
+                start: "top top+=64", // 4rem = 64px typically
                 end: () => `+=${getScrollAmount()}`,
                 pin: true,
-                pinType: "transform",
+                anticipatePin: 1,
                 scrub: 1,
                 invalidateOnRefresh: true,
                 pinSpacing: true,
-                anticipatePin: 1,
+                pinReparent: false, // Important for maintaining position
+                onEnter: () => {
+                    // When pinning starts, adjust the position to be 4rem from top
+                    gsap.set(".pin-spacer", { 
+                        position: "fixed",
+                        top: `${this.topOffset}`,
+                        width: "100%",
+                        zIndex: 10
+                    });
+                },
+                onRefresh: (self) => {
+                    // Ensure the pin-spacer stays at the correct position
+                    if (self.isActive) {
+                        gsap.set(".pin-spacer", { 
+                            position: "fixed",
+                            top: `${this.topOffset}`,
+                            width: "100%",
+                            zIndex: 10
+                        });
+                    }
+                }
             }
         });
 
+        // Animate wrapper
         tl.to(swiperWrapper, {
             x: () => -getScrollAmount(),
             ease: "none"
@@ -116,24 +157,28 @@ class ProjectScroll {
 
         this.scrollTrigger = tl.scrollTrigger;
 
+        // Create a spacer to prevent content overlap
         this.createSpacerAfterHorizontalScroll(container, containerHeight);
     }
 
+    // Create a spacer element after the horizontal scroll to prevent content overlap
     createSpacerAfterHorizontalScroll(container, containerHeight) {
+        // Remove any existing spacer first
         const existingSpacer = document.querySelector('.horizontal-scroll-spacer');
         if (existingSpacer) {
             existingSpacer.parentNode.removeChild(existingSpacer);
         }
 
+        // Create a new spacer
         const spacer = document.createElement('div');
         spacer.className = 'horizontal-scroll-spacer';
-        const offsetValuePx = parseFloat(getComputedStyle(document.documentElement).fontSize) * parseFloat(this.topOffset);
-        spacer.style.height = `${containerHeight + offsetValuePx}px`; // Adjust if needed after testing
+        spacer.style.height = `${containerHeight + 64}px`; // Add the 4rem offset
         spacer.style.width = '100%';
         spacer.style.display = 'block';
         spacer.style.position = 'relative';
         spacer.style.pointerEvents = 'none';
-
+        
+        // Insert after the horizontal scroll container
         if (container.nextSibling) {
             container.parentNode.insertBefore(spacer, container.nextSibling);
         } else {
@@ -143,17 +188,19 @@ class ProjectScroll {
 
     handleResize() {
         if (!this.initialized) return;
-
+        
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
             const isDesktop = window.innerWidth >= this.breakpoint;
             const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
-
+            
             if (!horizontalScrollContainer) return;
-
+            
             if (isDesktop) {
+                // If we're on desktop, reinitialize to recalculate heights
                 this.initProjectHorizontalScroll(horizontalScrollContainer);
             } else {
+                // If we're on mobile, clean up and reset heights
                 this.cleanup();
                 horizontalScrollContainer.style.height = '';
                 horizontalScrollContainer.style.minHeight = '';
@@ -163,13 +210,15 @@ class ProjectScroll {
 
     refresh() {
         if (!this.initialized) return;
-
+        
         const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
         if (!horizontalScrollContainer) return;
-
+        
         if (window.innerWidth >= this.breakpoint) {
+            // On desktop, reinitialize to recalculate heights
             this.initProjectHorizontalScroll(horizontalScrollContainer);
         } else {
+            // On mobile, clean up and reset heights
             this.cleanup();
             horizontalScrollContainer.style.height = '';
             horizontalScrollContainer.style.minHeight = '';
@@ -181,22 +230,37 @@ class ProjectScroll {
             this.scrollTrigger.kill();
             this.scrollTrigger = null;
         }
-
+        
+        // Clean up any pin-spacers that might be left behind
+        document.querySelectorAll('.pin-spacer').forEach(spacer => {
+            const content = spacer.querySelector(':scope > *:not(.pin-spacer)');
+            if (content) {
+                // Move the content outside the spacer
+                spacer.parentNode.insertBefore(content, spacer);
+            }
+            // Remove the spacer
+            spacer.parentNode.removeChild(spacer);
+        });
+        
+        // Remove the horizontal scroll spacer
         const horizontalScrollSpacer = document.querySelector('.horizontal-scroll-spacer');
         if (horizontalScrollSpacer) {
             horizontalScrollSpacer.parentNode.removeChild(horizontalScrollSpacer);
         }
-
+        
+        // Reset any transforms on the swiper wrapper
         const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
         if (swiperWrapper) {
             gsap.set(swiperWrapper, { clearProps: "all" });
         }
-
+        
+        // Reset container height and position
         const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
         if (horizontalScrollContainer) {
-            gsap.set(horizontalScrollContainer, { clearProps: "all" });
             horizontalScrollContainer.style.height = '';
             horizontalScrollContainer.style.minHeight = '';
+            horizontalScrollContainer.style.position = '';
+            horizontalScrollContainer.style.top = '';
         }
     }
 }
