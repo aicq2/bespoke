@@ -47,8 +47,8 @@ class SmoothScroll {
     document.documentElement.classList.remove('is-desktop');
     
     // 3. Ensure proper scrolling behavior
-    document.body.style.overflow = 'auto';
-    document.documentElement.style.overflow = 'auto';
+   /* document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';*/
     
     // 4. Reset all transforms on scroll containers
     const elements = [

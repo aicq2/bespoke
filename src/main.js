@@ -165,7 +165,7 @@ function initializeSiteModules() {
     nextProject,
     homeScroll,
     horizontalScroll,
-    projectScroll  // Add projectScroll to the exposed modules
+    projectScroll  
   };
 }
 
