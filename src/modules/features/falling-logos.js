@@ -109,17 +109,13 @@ class FallingLogos {
   
       this.currentRender = render;
   
-      const groundHeight = 160;
-      const buffer = 5; // Pixels above the measured bottom for the ground's top edge
       var ground = Bodies.rectangle(
         containerWidth / 2 + 160,
-        (containerHeight - buffer) + (groundHeight / 2), // Center Y so top edge is at containerHeight - buffer
+        containerHeight + 80,
         containerWidth + 320,
-        groundHeight,
+        160,
         { render: { fillStyle: "#EEEFF2" }, isStatic: true }
       );
-
-      
       var wallLeft = Bodies.rectangle(
         -80,
         containerHeight / 2,
