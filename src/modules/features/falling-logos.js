@@ -111,7 +111,7 @@ class FallingLogos {
   
       var ground = Bodies.rectangle(
         containerWidth / 2 + 160,
-        containerHeight + 80,
+        containerHeight + 80 - 16,
         containerWidth + 320,
         160,
         { render: { fillStyle: "#EEEFF2" }, isStatic: true }
