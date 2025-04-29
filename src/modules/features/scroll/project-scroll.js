@@ -6,6 +6,7 @@ class ProjectScroll {
         this.initialized = false;
         this.breakpoint = 768; // Mobile breakpoint
         this.resizeTimeout = null;
+        this.topOffset = '4rem'; // Top offset for pinning
     }
 
     init(params = {}) {
@@ -33,8 +34,9 @@ class ProjectScroll {
                     if (window.innerWidth >= this.breakpoint) {
                         this.initProjectHorizontalScroll(horizontalScrollContainer);
                     } else {
-                        // On mobile, reset any styles
-                        this.resetStyles();
+                        // On mobile, reset any fixed height
+                        horizontalScrollContainer.style.height = '';
+                        horizontalScrollContainer.style.minHeight = '';
                     }
                     
                     this.initialized = true;
@@ -55,7 +57,8 @@ class ProjectScroll {
 
         // Don't initialize on mobile
         if (window.innerWidth < this.breakpoint) {
-            this.resetStyles();
+            container.style.height = '';
+            container.style.minHeight = '';
             return;
         }
 
@@ -69,67 +72,126 @@ class ProjectScroll {
             return;
         }
 
-        // Calculate the correct height for the horizontal scroll container
-        this.calculateAndSetContainerHeight(container, sliderComponent, swiperWrapper, slides);
+        // Calculate scroll amount based on wrapper width
+        const getScrollAmount = () => {
+            const wrapperWidth = swiperWrapper.scrollWidth;
+            const containerWidth = container.offsetWidth;
+            return Math.max(0, wrapperWidth - containerWidth);
+        };
 
-        // Create the horizontal scroll effect with ScrollTrigger
-        this.scrollTrigger = ScrollTrigger.create({
-            trigger: container,
-            start: "top top",
-            end: "bottom bottom",
-            scrub: true,
-            onUpdate: (self) => {
-                // Calculate the total scroll distance
-                const totalWidth = swiperWrapper.scrollWidth;
-                const containerWidth = container.offsetWidth;
-                const scrollDistance = totalWidth - containerWidth;
-                
-                // Calculate how far to scroll horizontally based on vertical scroll progress
-                const progress = self.progress;
-                const xPosition = -scrollDistance * progress;
-                gsap.set(swiperWrapper, { x: xPosition });
+        // Calculate the optimal height for the container
+        const calculateOptimalHeight = () => {
+            // Get the tallest slide height
+            let maxSlideHeight = 0;
+            slides.forEach(slide => {
+                const slideImg = slide.querySelector('img');
+                if (slideImg) {
+                    const imgHeight = slideImg.offsetHeight;
+                    maxSlideHeight = Math.max(maxSlideHeight, imgHeight);
+                }
+            });
+
+            // Add some padding for controls if needed
+            const padding = 40;
+            return maxSlideHeight + padding;
+        };
+
+        // Set the container height based on content
+        const containerHeight = calculateOptimalHeight();
+        container.style.height = `${containerHeight}px`;
+        container.style.minHeight = `${containerHeight}px`;
+
+        // Create a wrapper for the pin effect with custom positioning
+        const pinWrapper = document.createElement('div');
+        pinWrapper.className = 'project-pin-wrapper';
+        pinWrapper.style.position = 'relative';
+        pinWrapper.style.width = '100%';
+        pinWrapper.style.height = `${containerHeight}px`;
+        pinWrapper.style.overflow = 'hidden';
+        
+        // Move the container into the wrapper
+        container.parentNode.insertBefore(pinWrapper, container);
+        pinWrapper.appendChild(container);
+        
+        // Create a custom pin element that will be positioned at 4rem from top
+        const pinElement = document.createElement('div');
+        pinElement.className = 'project-pin-element';
+        pinElement.style.position = 'absolute';
+        pinElement.style.top = '0';
+        pinElement.style.left = '0';
+        pinElement.style.width = '100%';
+        pinElement.style.height = '1px';
+        pinElement.style.pointerEvents = 'none';
+        pinWrapper.appendChild(pinElement);
+
+        // Create a timeline
+        let tl = gsap.timeline({
+            scrollTrigger: {
+                trigger: pinElement,
+                start: `top top+=${this.topOffset}`,
+                end: () => `+=${getScrollAmount()}`,
+                pin: container,
+                anticipatePin: 1,
+                scrub: 1,
+                invalidateOnRefresh: true,
+                onUpdate: (self) => {
+                    // When scrolling, ensure the container stays at the right position
+                    if (self.isActive) {
+                        container.style.position = 'fixed';
+                        container.style.top = this.topOffset;
+                        container.style.left = '0';
+                        container.style.width = '100%';
+                        container.style.zIndex = '10';
+                    } else if (self.progress === 0) {
+                        // Before the pin starts
+                        container.style.position = 'absolute';
+                        container.style.top = '0';
+                        container.style.left = '0';
+                    } else if (self.progress === 1) {
+                        // After the pin ends
+                        container.style.position = 'absolute';
+                        container.style.top = `${getScrollAmount()}px`;
+                        container.style.left = '0';
+                    }
+                }
             }
         });
+
+        // Animate wrapper
+        tl.to(swiperWrapper, {
+            x: () => -getScrollAmount(),
+            ease: "none"
+        });
+
+        this.scrollTrigger = tl.scrollTrigger;
+
+        // Create a spacer to prevent content overlap
+        this.createSpacerAfterHorizontalScroll(pinWrapper, containerHeight + getScrollAmount());
     }
 
-    calculateAndSetContainerHeight(container, sliderComponent, swiperWrapper, slides) {
-        // Calculate the total width of all slides
-        const totalWidth = swiperWrapper.scrollWidth;
-        const containerWidth = container.offsetWidth;
-        
-        // Calculate how much extra scroll space we need
-        const scrollDistance = totalWidth - containerWidth;
-        
-        // Get the height of the slider component
-        let sliderHeight = 0;
-        
-        // Try to get height from the tallest slide
-        slides.forEach(slide => {
-            const slideImg = slide.querySelector('img');
-            if (slideImg) {
-                const imgHeight = slideImg.offsetHeight;
-                sliderHeight = Math.max(sliderHeight, imgHeight);
-            }
-        });
-        
-        // If we couldn't get height from slides, use the component's height
-        if (sliderHeight === 0) {
-            sliderHeight = sliderComponent.offsetHeight;
+    // Create a spacer element after the horizontal scroll to prevent content overlap
+    createSpacerAfterHorizontalScroll(container, totalHeight) {
+        // Remove any existing spacer first
+        const existingSpacer = document.querySelector('.horizontal-scroll-spacer');
+        if (existingSpacer) {
+            existingSpacer.parentNode.removeChild(existingSpacer);
         }
+
+        // Create a new spacer
+        const spacer = document.createElement('div');
+        spacer.className = 'horizontal-scroll-spacer';
+        spacer.style.height = `${totalHeight}px`;
+        spacer.style.width = '100%';
+        spacer.style.display = 'block';
+        spacer.style.position = 'relative';
+        spacer.style.pointerEvents = 'none';
         
-        // Add some padding
-        sliderHeight += 40;
-        
-        // Set minimum height for the container - this creates the scrolling space
-        // We need enough height to allow scrolling through the entire horizontal content
-        const containerHeight = scrollDistance + sliderHeight;
-        
-        // Set the container height
-        container.style.height = `${containerHeight}px`;
-        
-        console.log(`Set horizontal scroll container height to ${containerHeight}px`);
-        console.log(`- Slider height: ${sliderHeight}px`);
-        console.log(`- Scroll distance: ${scrollDistance}px`);
+        // Insert after the container
+        if (container.nextSibling) {
+            container.parentNode.insertBefore(spacer, container.nextSibling);
+        } else {
+            container.parentNode.appendChild(spacer);
+        }
     }
 
     handleResize() {
@@ -143,12 +205,13 @@ class ProjectScroll {
             if (!horizontalScrollContainer) return;
             
             if (isDesktop) {
-                // If we're on desktop, reinitialize
+                // If we're on desktop, reinitialize to recalculate heights
                 this.initProjectHorizontalScroll(horizontalScrollContainer);
             } else {
-                // If we're on mobile, clean up and reset
+                // If we're on mobile, clean up and reset heights
                 this.cleanup();
-                this.resetStyles();
+                horizontalScrollContainer.style.height = '';
+                horizontalScrollContainer.style.minHeight = '';
             }
         }, 250);
     }
@@ -160,26 +223,13 @@ class ProjectScroll {
         if (!horizontalScrollContainer) return;
         
         if (window.innerWidth >= this.breakpoint) {
-            // On desktop, reinitialize
+            // On desktop, reinitialize to recalculate heights
             this.initProjectHorizontalScroll(horizontalScrollContainer);
         } else {
-            // On mobile, clean up and reset
+            // On mobile, clean up and reset heights
             this.cleanup();
-            this.resetStyles();
-        }
-    }
-
-    resetStyles() {
-        // Reset container styles
-        const horizontalScrollContainer = document.querySelector('.horizontal-scroll');
-        if (horizontalScrollContainer) {
             horizontalScrollContainer.style.height = '';
-        }
-
-        // Reset swiper wrapper transform
-        const swiperWrapper = document.querySelector('.swiper-wrapper');
-        if (swiperWrapper) {
-            gsap.set(swiperWrapper, { clearProps: "all" });
+            horizontalScrollContainer.style.minHeight = '';
         }
     }
 
@@ -189,7 +239,48 @@ class ProjectScroll {
             this.scrollTrigger = null;
         }
         
-        this.resetStyles();
+        // Clean up any pin-spacers that might be left behind
+        document.querySelectorAll('.pin-spacer').forEach(spacer => {
+            const content = spacer.querySelector(':scope > *:not(.pin-spacer)');
+            if (content) {
+                // Move the content outside the spacer
+                spacer.parentNode.insertBefore(content, spacer);
+            }
+            // Remove the spacer
+            spacer.parentNode.removeChild(spacer);
+        });
+        
+        // Remove the horizontal scroll spacer
+        const horizontalScrollSpacer = document.querySelector('.horizontal-scroll-spacer');
+        if (horizontalScrollSpacer) {
+            horizontalScrollSpacer.parentNode.removeChild(horizontalScrollSpacer);
+        }
+        
+        // Remove the pin wrapper and restore original DOM structure
+        const pinWrapper = document.querySelector('.project-pin-wrapper');
+        if (pinWrapper) {
+            const horizontalScroll = pinWrapper.querySelector('.horizontal-scroll');
+            if (horizontalScroll) {
+                // Move the horizontal scroll out of the wrapper
+                pinWrapper.parentNode.insertBefore(horizontalScroll, pinWrapper);
+                // Reset styles
+                horizontalScroll.style.position = '';
+                horizontalScroll.style.top = '';
+                horizontalScroll.style.left = '';
+                horizontalScroll.style.width = '';
+                horizontalScroll.style.zIndex = '';
+                horizontalScroll.style.height = '';
+                horizontalScroll.style.minHeight = '';
+            }
+            // Remove the wrapper
+            pinWrapper.parentNode.removeChild(pinWrapper);
+        }
+        
+        // Reset any transforms on the swiper wrapper
+        const swiperWrapper = document.querySelector('.horizontal-scroll .swiper-wrapper');
+        if (swiperWrapper) {
+            gsap.set(swiperWrapper, { clearProps: "all" });
+        }
     }
 }
 
