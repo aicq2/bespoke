@@ -265,7 +265,7 @@ class FallingLogos {
         while (angle < -Math.PI) angle += 2 * Math.PI;
         
         // If angle is too extreme (upside down), correct it
-        const maxRotation = Math.PI / 4; // 45 degrees rotation limit
+        const maxRotation = Math.PI / 2; // 45 degrees rotation limit
         
         if (angle > maxRotation) {
           Matter.Body.setAngle(body, maxRotation);
