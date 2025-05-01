@@ -90,6 +90,8 @@ class FallingLogos {
 
     var engine = Engine.create();
     engine.world.gravity.y = 1;
+    engine.positionIterations = 8; 
+    engine.velocityIterations = 6;
 
     var world = engine.world;
     this.currentEngine = engine;
@@ -159,7 +161,7 @@ class FallingLogos {
 
     var tags = tagData.map((tag) =>
       Bodies.rectangle(tag.x, tag.y, tag.width, tag.height, {
-        chamfer: { radius: 20 },
+        chamfer: { radius: 5 },
         render: {
           sprite: {
             texture: tag.texture,
@@ -180,7 +182,7 @@ class FallingLogos {
     var mouse = Mouse.create(render.canvas),
       mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
-        constraint: { stiffness: 0.2, render: { visible: false } },
+        constraint: { stiffness: 0.5, render: { visible: false } },
       });
 
     World.add(world, mouseConstraint);
@@ -193,7 +195,7 @@ class FallingLogos {
     document.addEventListener("mousedown", () => (click = true));
     document.addEventListener("mousemove", () => (click = false));
 
-    Events.on(mouseConstraint, "mouseup", (event) => {
+    /*Events.on(mouseConstraint, "mouseup", (event) => {
       var mouseConstraint = event.source;
       var bodies = engine.world.bodies;
       if (!mouseConstraint.bodyB && click) {
@@ -208,7 +210,35 @@ class FallingLogos {
           }
         }
       }
+    });*/
+
+    Events.on(mouseConstraint, "mouseup", (event) => {
+      var mousePosition = mouseConstraint.mouse.position; // Get mouse position
+    
+      // Only proceed if not dragging a body AND it was likely a click
+      if (!mouseConstraint.bodyB && click) {
+        // Query the world for bodies at the mouse position
+        const bodiesAtMouse = Matter.Query.point(engine.world.bodies, mousePosition);
+    
+        // Check if any bodies were found
+        if (bodiesAtMouse.length > 0) {
+          // The first body in the array is typically the topmost one visually
+          var clickedBody = bodiesAtMouse[0];
+    
+          // Ensure it's not a static body (like walls/ground)
+          if (!clickedBody.isStatic && clickedBody.url) {
+            //console.log("Opening URL for:", clickedBody); // For debugging
+            window.open(clickedBody.url, "_blank");
+          }
+        }
+      }
+      click = false; // Reset click flag after processing
     });
+    
+    // Reset click flag on mousedown as well, just in case
+    document.addEventListener("mousedown", () => (click = true));
+    // Keep mousemove resetting click flag
+    document.addEventListener("mousemove", () => (click = false));
     
     // Add rotation limiting functionality
     // This event runs after each physics update
