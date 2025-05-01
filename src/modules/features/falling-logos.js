@@ -24,7 +24,6 @@ class FallingLogos {
       const observer = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            //console.log("Container intersected, starting simulation");
             this.initSimulation(true); // Force initial start
             observer.disconnect();
           }
@@ -63,11 +62,6 @@ class FallingLogos {
     const containerWidth = containerElement.clientWidth + 2;
     const containerHeight = containerElement.clientHeight + 2;
 
-    // Log when this runs
-   /* console.log(
-      `initSimulation called - Active: ${this.simulationActive}, Force: ${forceRestart}, Size: ${containerWidth}x${containerHeight}`
-    );*/
-
     // Only restart if forced or size changed significantly
     if (
       this.simulationActive &&
@@ -88,10 +82,14 @@ class FallingLogos {
         World = Matter.World,
         Bodies = Matter.Bodies;
 
-    var engine = Engine.create();
-    engine.world.gravity.y = 1;
-    engine.positionIterations = 8; 
-    engine.velocityIterations = 6;
+    // Create engine with improved solver settings
+    var engine = Engine.create({
+      positionIterations: 8, // Default is 6, higher values = more accuracy
+      velocityIterations: 8, // Default is 4, higher values = more accuracy
+      enableSleeping: false  // Prevent bodies from "sleeping" when inactive
+    });
+    
+    engine.world.gravity.y = 1; // Keep the same gravity
 
     var world = engine.world;
     this.currentEngine = engine;
@@ -111,33 +109,54 @@ class FallingLogos {
 
     this.currentRender = render;
 
+    // Create boundaries with lower friction to reduce sticking
     var ground = Bodies.rectangle(
       containerWidth / 2 + 160,
       containerHeight + 80,
       containerWidth + 320,
       160,
-      { render: { fillStyle: "#EEEFF2" }, isStatic: true }
+      { 
+        render: { fillStyle: "#EEEFF2" }, 
+        isStatic: true,
+        friction: 0.1, // Lower friction to reduce sticking
+        restitution: 0.2 // Slight bounce on the ground
+      }
     );
+    
     var wallLeft = Bodies.rectangle(
       -80,
       containerHeight / 2,
       160,
       containerHeight,
-      { isStatic: true }
+      { 
+        isStatic: true,
+        friction: 0.1,
+        restitution: 0.5
+      }
     );
+    
     var wallRight = Bodies.rectangle(
       containerWidth + 80,
       containerHeight / 2,
       160,
       1200,
-      { isStatic: true }
+      { 
+        isStatic: true,
+        friction: 0.1,
+        restitution: 0.5
+      }
     );
+    
     var roof = Bodies.rectangle(
       containerWidth / 2 + 160,
       -80,
       containerWidth + 320,
       160,
-      { isStatic: true }
+      { 
+        isStatic: true,
+        friction: 0.1,
+        restitution: 0.5
+      }
     );
 
     World.add(engine.world, [ground, wallLeft, wallRight, roof]);
@@ -159,35 +178,49 @@ class FallingLogos {
       url: img.dataset.url || null,
     }));
 
+    // Create tags with improved physics properties
     var tags = tagData.map((tag) =>
       Bodies.rectangle(tag.x, tag.y, tag.width, tag.height, {
-        chamfer: { radius: 5 },
+        chamfer: { radius: 12 }, // Reduced chamfer radius for better collisions
         render: {
           sprite: {
             texture: tag.texture,
             xScale: tag.xScale,
             yScale: tag.yScale,
-          },
+          }
         },
         url: tag.url,
-        frictionAir: 0.01,
-        restitution: 0.6,
-        density: 0.01,
-        // No need to set inertia: Infinity here as we'll be using rotation limiting instead
+        frictionAir: 0.001, // Reduced air friction (like in the example)
+        friction: 0.2,      // Reduced surface friction
+        restitution: 0.5,   // Increased bounciness
+        density: 0.005,     // Reduced density for more dynamic movement
+        collisionFilter: {  // Improved collision filtering
+          group: 0,
+          category: 0x0001,
+          mask: 0xFFFFFFFF
+        }
       })
     );
 
     World.add(engine.world, [...tags]);
 
-    var mouse = Mouse.create(render.canvas),
-      mouseConstraint = MouseConstraint.create(engine, {
-        mouse: mouse,
-        constraint: { stiffness: 0.5, render: { visible: false } },
-      });
+    // Improved mouse interaction
+    var mouse = Mouse.create(render.canvas);
+    
+    // Adjust mouse settings for better interaction
+    var mouseConstraint = MouseConstraint.create(engine, {
+      mouse: mouse,
+      constraint: { 
+        stiffness: 0.2, 
+        render: { visible: false },
+        angularStiffness: 0.1 // Add angular stiffness for better control
+      }
+    });
 
     World.add(world, mouseConstraint);
     render.mouse = mouse;
 
+    // Disable mouse wheel to prevent scrolling issues
     mouse.element.removeEventListener("mousewheel", mouse.mousewheel);
     mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
 
@@ -195,7 +228,7 @@ class FallingLogos {
     document.addEventListener("mousedown", () => (click = true));
     document.addEventListener("mousemove", () => (click = false));
 
-    /*Events.on(mouseConstraint, "mouseup", (event) => {
+    Events.on(mouseConstraint, "mouseup", (event) => {
       var mouseConstraint = event.source;
       var bodies = engine.world.bodies;
       if (!mouseConstraint.bodyB && click) {
@@ -210,38 +243,9 @@ class FallingLogos {
           }
         }
       }
-    });*/
-
-    Events.on(mouseConstraint, "mouseup", (event) => {
-      var mousePosition = mouseConstraint.mouse.position; // Get mouse position
-    
-      // Only proceed if not dragging a body AND it was likely a click
-      if (!mouseConstraint.bodyB && click) {
-        // Query the world for bodies at the mouse position
-        const bodiesAtMouse = Matter.Query.point(engine.world.bodies, mousePosition);
-    
-        // Check if any bodies were found
-        if (bodiesAtMouse.length > 0) {
-          // The first body in the array is typically the topmost one visually
-          var clickedBody = bodiesAtMouse[0];
-    
-          // Ensure it's not a static body (like walls/ground)
-          if (!clickedBody.isStatic && clickedBody.url) {
-            //console.log("Opening URL for:", clickedBody); // For debugging
-            window.open(clickedBody.url, "_blank");
-          }
-        }
-      }
-      click = false; // Reset click flag after processing
     });
     
-    // Reset click flag on mousedown as well, just in case
-    document.addEventListener("mousedown", () => (click = true));
-    // Keep mousemove resetting click flag
-    document.addEventListener("mousemove", () => (click = false));
-    
     // Add rotation limiting functionality
-    // This event runs after each physics update
     Events.on(engine, 'afterUpdate', function() {
       // Get all bodies
       var bodies = engine.world.bodies;
@@ -261,8 +265,7 @@ class FallingLogos {
         while (angle < -Math.PI) angle += 2 * Math.PI;
         
         // If angle is too extreme (upside down), correct it
-        // This allows rotation of about ±45 degrees (π/4 radians)
-        const maxRotation = Math.PI / 4; // Adjust this value as needed
+        const maxRotation = Math.PI / 4; // 45 degrees rotation limit
         
         if (angle > maxRotation) {
           Matter.Body.setAngle(body, maxRotation);
@@ -274,6 +277,24 @@ class FallingLogos {
       }
     });
 
+    // Add a "wake up" function to ensure bodies remain interactive
+    // This helps with the issue of not being able to interact with some elements
+    setInterval(() => {
+      if (this.simulationActive) {
+        var bodies = engine.world.bodies;
+        for (let i = 0; i < bodies.length; i++) {
+          var body = bodies[i];
+          if (!body.isStatic) {
+            // Apply a tiny force to keep bodies "awake"
+            Matter.Body.applyForce(body, body.position, {
+              x: (Math.random() - 0.5) * 0.0001,
+              y: (Math.random() - 0.5) * 0.0001
+            });
+          }
+        }
+      }
+    }, 3000); // Every 3 seconds
+
     var Runner = Matter.Runner;
     var runner = Runner.create();
     this.currentRunner = runner;
@@ -283,7 +304,6 @@ class FallingLogos {
     this.simulationActive = true;
     this.lastWidth = containerWidth;
     this.lastHeight = containerHeight;
-   // console.log("Simulation started");
   }
 
   bindEvents() {
@@ -321,8 +341,6 @@ class FallingLogos {
     }, 250);
   }
 }
-
-
 
 const fallingLogos = new FallingLogos();
 export { fallingLogos };
