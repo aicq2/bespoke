@@ -10,6 +10,14 @@ class FallingLogos {
     this.lastHeight = 0;
     this.resizeTimeout = null;
     this.isScrolling = false;
+    this.currentMouseConstraint = null;
+    this.mouseUpHandler = null;
+    this.afterUpdateHandler = null;
+    this.onDocumentMouseDown = null;
+    this.onDocumentMouseMove = null;
+    this.rotationTick = 0;
+    this.rotationFrameSkip = 2;
+    this.maxRotation = Math.PI / 4;
   }
 
   init() {
@@ -37,15 +45,42 @@ class FallingLogos {
   }
 
   destroySimulation() {
-    if (this.simulationActive) {
-      if (this.currentRender) Matter.Render.stop(this.currentRender);
-      if (this.currentRunner) Matter.Runner.stop(this.currentRunner);
-      if (this.currentEngine) Matter.World.clear(this.currentEngine.world);
-      if (this.currentRender && this.currentRender.canvas) {
-        this.currentRender.canvas.remove();
-      }
-      this.simulationActive = false;
+    if (!this.simulationActive) return;
+
+    if (this.currentMouseConstraint && this.mouseUpHandler) {
+      Matter.Events.off(this.currentMouseConstraint, "mouseup", this.mouseUpHandler);
     }
+
+    if (this.currentEngine && this.afterUpdateHandler) {
+      Matter.Events.off(this.currentEngine, "afterUpdate", this.afterUpdateHandler);
+    }
+
+    if (this.onDocumentMouseDown) {
+      document.removeEventListener("mousedown", this.onDocumentMouseDown);
+    }
+    if (this.onDocumentMouseMove) {
+      document.removeEventListener("mousemove", this.onDocumentMouseMove);
+    }
+
+    if (this.currentRender) Matter.Render.stop(this.currentRender);
+    if (this.currentRunner) Matter.Runner.stop(this.currentRunner);
+    if (this.currentEngine) {
+      Matter.World.clear(this.currentEngine.world, false);
+      Matter.Engine.clear(this.currentEngine);
+    }
+    if (this.currentRender && this.currentRender.canvas) {
+      this.currentRender.canvas.remove();
+    }
+
+    this.currentMouseConstraint = null;
+    this.mouseUpHandler = null;
+    this.afterUpdateHandler = null;
+    this.onDocumentMouseDown = null;
+    this.onDocumentMouseMove = null;
+    this.currentEngine = null;
+    this.currentRender = null;
+    this.currentRunner = null;
+    this.simulationActive = false;
   }
 
   isVisible(element) {
@@ -89,8 +124,7 @@ class FallingLogos {
         Bodies = Matter.Bodies;
 
     var engine = Engine.create();
-    // Disable falling while keeping physics active for dragging.
-    engine.world.gravity.y = 0;
+    engine.world.gravity.y = 1;
 
     var world = engine.world;
     this.currentEngine = engine;
@@ -101,7 +135,7 @@ class FallingLogos {
       options: {
         width: containerWidth,
         height: containerHeight,
-        pixelRatio: 2,
+        pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
         background: "transparent",
         border: "none",
         wireframes: false,
@@ -149,8 +183,7 @@ class FallingLogos {
 
     var tagData = tagElements.map((img) => ({
       x: Math.random() * (containerWidth - 100) + 50,
-      // Keep logos visible on load now that gravity is disabled.
-      y: Math.random() * Math.max(containerHeight - 120, 40) + 60,
+      y: Math.random() * 200 - 100,
       width: img.dataset.width ? parseInt(img.dataset.width) : 164,
       height: img.dataset.height ? parseInt(img.dataset.height) : 56,
       texture: img.src,
@@ -184,6 +217,7 @@ class FallingLogos {
         mouse: mouse,
         constraint: { stiffness: 0.2, render: { visible: false } },
       });
+    this.currentMouseConstraint = mouseConstraint;
 
     World.add(world, mouseConstraint);
     render.mouse = mouse;
@@ -192,10 +226,12 @@ class FallingLogos {
     mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
 
     let click = false;
-    document.addEventListener("mousedown", () => (click = true));
-    document.addEventListener("mousemove", () => (click = false));
+    this.onDocumentMouseDown = () => (click = true);
+    this.onDocumentMouseMove = () => (click = false);
+    document.addEventListener("mousedown", this.onDocumentMouseDown);
+    document.addEventListener("mousemove", this.onDocumentMouseMove);
 
-    Events.on(mouseConstraint, "mouseup", (event) => {
+    this.mouseUpHandler = (event) => {
       var mouseConstraint = event.source;
       var bodies = engine.world.bodies;
       if (!mouseConstraint.bodyB && click) {
@@ -210,41 +246,29 @@ class FallingLogos {
           }
         }
       }
-    });
+    };
+    Events.on(mouseConstraint, "mouseup", this.mouseUpHandler);
     
-    // Add rotation limiting functionality
-    // This event runs after each physics update
-    Events.on(engine, 'afterUpdate', function() {
-      // Get all bodies
-      var bodies = engine.world.bodies;
-      
-      // Loop through each body (excluding static ones like walls)
-      for (let i = 0; i < bodies.length; i++) {
-        var body = bodies[i];
-        
-        // Skip walls and ground (static bodies)
-        if (body.isStatic) continue;
-        
-        // Get current angle (in radians)
-        let angle = body.angle;
-        
-        // Normalize angle between -π and π
-        while (angle > Math.PI) angle -= 2 * Math.PI;
-        while (angle < -Math.PI) angle += 2 * Math.PI;
-        
-        // If angle is too extreme (upside down), correct it
-        // This allows rotation of about ±45 degrees (π/4 radians)
-        const maxRotation = Math.PI / 4; // Adjust this value as needed
-        
-        if (angle > maxRotation) {
-          Matter.Body.setAngle(body, maxRotation);
+    // Rotation limiting is intentionally throttled to reduce mobile CPU load.
+    this.rotationTick = 0;
+    this.afterUpdateHandler = () => {
+      this.rotationTick += 1;
+      if (this.rotationTick % this.rotationFrameSkip !== 0) return;
+
+      for (let i = 0; i < tags.length; i++) {
+        const body = tags[i];
+        const normalizedAngle = Math.atan2(Math.sin(body.angle), Math.cos(body.angle));
+
+        if (normalizedAngle > this.maxRotation) {
+          Matter.Body.setAngle(body, this.maxRotation);
           Matter.Body.setAngularVelocity(body, 0);
-        } else if (angle < -maxRotation) {
-          Matter.Body.setAngle(body, -maxRotation);
+        } else if (normalizedAngle < -this.maxRotation) {
+          Matter.Body.setAngle(body, -this.maxRotation);
           Matter.Body.setAngularVelocity(body, 0);
         }
       }
-    });
+    };
+    Events.on(engine, "afterUpdate", this.afterUpdateHandler);
 
     var Runner = Matter.Runner;
     var runner = Runner.create();
