@@ -89,7 +89,8 @@ class FallingLogos {
         Bodies = Matter.Bodies;
 
     var engine = Engine.create();
-    engine.world.gravity.y = 1;
+    // Disable falling while keeping physics active for dragging.
+    engine.world.gravity.y = 0;
 
     var world = engine.world;
     this.currentEngine = engine;
@@ -148,7 +149,8 @@ class FallingLogos {
 
     var tagData = tagElements.map((img) => ({
       x: Math.random() * (containerWidth - 100) + 50,
-      y: Math.random() * 200 - 100,
+      // Keep logos visible on load now that gravity is disabled.
+      y: Math.random() * Math.max(containerHeight - 120, 40) + 60,
       width: img.dataset.width ? parseInt(img.dataset.width) : 164,
       height: img.dataset.height ? parseInt(img.dataset.height) : 56,
       texture: img.src,
