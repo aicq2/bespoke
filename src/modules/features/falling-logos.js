@@ -122,6 +122,8 @@ class FallingLogos {
         Mouse = Matter.Mouse,
         World = Matter.World,
         Bodies = Matter.Bodies;
+    const logoCategory = 0x0002;
+    const boundaryCategory = 0x0004;
 
     var engine = Engine.create();
     engine.world.gravity.y = 1;
@@ -151,28 +153,32 @@ class FallingLogos {
       containerHeight + 80,
       containerWidth + 320,
       160,
-      { render: { fillStyle: "#EEEFF2" }, isStatic: true }
+      {
+        render: { fillStyle: "#EEEFF2" },
+        isStatic: true,
+        collisionFilter: { category: boundaryCategory },
+      }
     );
     var wallLeft = Bodies.rectangle(
       -80,
       containerHeight / 2,
       160,
       containerHeight,
-      { isStatic: true }
+      { isStatic: true, collisionFilter: { category: boundaryCategory } }
     );
     var wallRight = Bodies.rectangle(
       containerWidth + 80,
       containerHeight / 2,
       160,
       1200,
-      { isStatic: true }
+      { isStatic: true, collisionFilter: { category: boundaryCategory } }
     );
     var roof = Bodies.rectangle(
       containerWidth / 2 + 160,
       -80,
       containerWidth + 320,
       160,
-      { isStatic: true }
+      { isStatic: true, collisionFilter: { category: boundaryCategory } }
     );
 
     World.add(engine.world, [ground, wallLeft, wallRight, roof]);
@@ -208,6 +214,7 @@ class FallingLogos {
         frictionAir: 0.01,
         restitution: 0.6,
         density: 0.01,
+        collisionFilter: { category: logoCategory },
         // No need to set inertia: Infinity here as we'll be using rotation limiting instead
       })
     );
@@ -218,6 +225,7 @@ class FallingLogos {
       mouseConstraint = MouseConstraint.create(engine, {
         mouse: mouse,
         constraint: { stiffness: 0.2, render: { visible: false } },
+        collisionFilter: { mask: logoCategory },
       });
     this.currentMouseConstraint = mouseConstraint;
 
