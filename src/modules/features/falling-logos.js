@@ -135,7 +135,9 @@ class FallingLogos {
       options: {
         width: containerWidth,
         height: containerHeight,
-        pixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+        pixelRatio: window.matchMedia("(pointer: coarse)").matches
+          ? 1
+          : Math.min(window.devicePixelRatio || 1, 1.5),
         background: "transparent",
         border: "none",
         wireframes: false,
@@ -221,6 +223,11 @@ class FallingLogos {
 
     World.add(world, mouseConstraint);
     render.mouse = mouse;
+    const renderPixelRatio = render.options.pixelRatio || 1;
+    Mouse.setScale(mouse, {
+      x: 1 / renderPixelRatio,
+      y: 1 / renderPixelRatio,
+    });
 
     mouse.element.removeEventListener("mousewheel", mouse.mousewheel);
     mouse.element.removeEventListener("DOMMouseScroll", mouse.mousewheel);
@@ -257,6 +264,7 @@ class FallingLogos {
 
       for (let i = 0; i < tags.length; i++) {
         const body = tags[i];
+        if (mouseConstraint.body === body) continue;
         const normalizedAngle = Math.atan2(Math.sin(body.angle), Math.cos(body.angle));
 
         if (normalizedAngle > this.maxRotation) {
